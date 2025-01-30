@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db';
 import userRoutes from './routes/userRoutes';
+import brandRoutes from './routes/brandRoutes';
 import ApiError from './utils/apiError';
 import cookieParser from 'cookie-parser'
 
@@ -21,6 +22,7 @@ connectDB();
 
 // Routes
 app.use('/api/users', userRoutes);
+app.use('/api/brand', brandRoutes);
 
 const errorHandler = (
     err: ApiError,  // Explicitly typing the error as ApiError
