@@ -8,19 +8,15 @@ const createBrandValidation = Joi.object<IBrandBody>({
     }),
     pageTitle: Joi.string().messages({
         'string.base': 'Page title must be a string.',
-        'any.required': 'Page title is required.',
     }),
     metaDescription: Joi.string().messages({
         'string.base': 'Meta description must be a string.',
-        'any.required': 'Meta description is required.',
     }),
     metaKeywords: Joi.string().messages({
-        'array.base': 'Meta keywords must be a string.',
-        'any.required': 'Meta keywords are required.',
+        'string.base': 'Meta keywords must be a string.',
     }),
     displayHome: Joi.boolean().messages({
         'boolean.base': 'Display home must be a boolean value.',
-        'any.required': 'Display home is required.',
     }),
 });
 
@@ -35,7 +31,7 @@ const updateBrandValidation = Joi.object({
         'string.base': 'Meta description must be a string.',
     }),
     metaKeywords: Joi.string().optional().messages({
-        'array.base': 'Meta keywords must be a string.',
+        'string.base': 'Meta keywords must be a string.',
     }),
     displayHome: Joi.boolean().optional().messages({
         'boolean.base': 'Display home must be a boolean value.',

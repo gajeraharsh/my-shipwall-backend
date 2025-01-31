@@ -6,7 +6,6 @@ const brandSchema = new Schema<IBrand, BrandModel>({
   brandName: {
     type: String,
     required: true,
-    unique: true,
   },
   pageTitle: {
     type: String,
