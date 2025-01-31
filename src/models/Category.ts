@@ -24,7 +24,7 @@ const categorySchema = new Schema<ICategory>({
     type: String,
   },
   metaKeywords: {
-    type: [String],
+    type: String,
   },
   iconImage: {
     type: String,
