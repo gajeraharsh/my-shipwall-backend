@@ -2,29 +2,29 @@ import { Document, Types, Model } from 'mongoose';
 
 export interface ISeries extends Document {
   brand: Types.ObjectId;
-  categoryName: string;
-  categoryUrl: string;
-  pageTitle: string;
+  category: Types.ObjectId;
+  seriesName: string;
+  seriesUrl: string;
   metaDescription: string;
+  pageTitle: string;
   metaKeywords: string;
-  iconImage: string;
-  displayHome: boolean;
+  thumbImage: string;
 }
 
 export interface ISeriesbody {
   brand: Types.ObjectId;
-  categoryName: string;
-  categoryUrl?: string;
-  pageTitle?: string;
+  category: Types.ObjectId;
+  seriesName?: string;
+  seriesUrl?: string;
   metaDescription?: string;
+  pageTitle?: string;
   metaKeywords?: string;
-  iconImage?: string;
-  displayHome?: boolean;
+  thumbImage?: string;
 }
 
 export interface ISeriesMethods {
   // Add any instance methods if needed in the future
 }
 
-export type CategoryModel = Model<ISeries, {}, ISeriesMethods>;
-export type CategoryDocument = Document & ISeries & ISeriesMethods;
+export type SeriesModel = Model<ISeries, {}, ISeriesMethods>;
+export type SeriesDocument = Document & ISeries & ISeriesMethods;

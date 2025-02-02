@@ -5,6 +5,7 @@ import connectDB from './config/db';
 import userRoutes from './routes/userRoutes';
 import brandRoutes from './routes/brandRoutes';
 import categoryRoutes from './routes/categoryRoutes';
+import seriesRoutes from './routes/seriesRoutes';
 import ApiError from './utils/apiError';
 import cookieParser from 'cookie-parser'
 
@@ -25,6 +26,7 @@ connectDB();
 app.use('/api/users', userRoutes);
 app.use('/api/brand', brandRoutes);
 app.use('/api/category', categoryRoutes);
+app.use('/api/series', seriesRoutes);
 
 const errorHandler = (
     err: ApiError,  // Explicitly typing the error as ApiError

@@ -18,7 +18,7 @@ export interface IBrandBody {
 }
 
 export interface IBrandMethods {
-  // Add any instance methods if needed in the future
+  paginate: any;
 }
 
 export type BrandModel = Model<IBrand, {}, IBrandMethods>;

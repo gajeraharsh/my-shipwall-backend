@@ -26,6 +26,6 @@ const brandSchema = new Schema<IBrand, BrandModel>({
 
 brandSchema.plugin(paginate);
 
-const Brand = mongoose.model<IBrand, BrandModel>('Brand', brandSchema);
+const Brand = mongoose.model<IBrand, any>('Brand', brandSchema);
 
 export default Brand;

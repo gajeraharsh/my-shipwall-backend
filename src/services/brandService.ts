@@ -20,8 +20,9 @@ export const createNewBrand = async (brandBody: IBrandBody) => {
   
   export const fetchBrands = async () => {
     try {
+      const brands = await Brand.paginate({}, {});
+        // const brands = await Brand.find();
         
-        const brands = await Brand.find();
         
         if (!brands || brands.length === 0) {
           throw new ApiError(httpStatus.NOT_FOUND, 'No brands found');
