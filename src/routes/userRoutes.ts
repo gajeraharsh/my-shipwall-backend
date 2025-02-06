@@ -1,11 +1,15 @@
 import express from 'express';
-import { getUsers, createUser } from '../controllers/userController';
+import { createUser, loginUser, logoutUser, } from '../controllers/userController';
+import { verifyJWT } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
-router.get('/', (req,res) => {
-    res.send('hello world')
-});
-router.post('/', createUser);
+
+router.route("/create").post(createUser);
+router.route("/login").post(loginUser);
+router.route("/logout").post(verifyJWT, logoutUser);
+
+
+
 
 export default router;
