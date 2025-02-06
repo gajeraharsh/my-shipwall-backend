@@ -17,20 +17,19 @@ export const createNewCategory = async (categoryBody: ICategorybody) => {
 * @param {Object} options - Query options (e.g., pagination, sort, populate)
 * @returns {Promise<QueryResult>}
 */
+export const getCategoryByIdService = async (categoryId: string) => {
+  try {
+    const category = await Category.findById(categoryId).populate('brand', 'brandName');
 
+    if (!category) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Category not found');
+    }
 
-
-  export const getCategoryByIdService = async (categoryId: string) => {
-    try {
-      const category = await Category.findById(categoryId).populate('brand', 'brandName');
-
-      if (!category) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Category not found');
-      }
-  
-      return category;
-    } catch (err: any) {
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving category');
+    return category;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving category');
+  }
+}
 
 export const fetchCategories = async (req: any) => {
   try {
@@ -69,19 +68,6 @@ export const fetchCategoriesDropdown = async () => {
   }
 };
 
-export const getCategoryByIdService = async (categoryId: string) => {
-  try {
-    const category = await Category.findById(categoryId);
-
-    if (!category) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Category not found');
-    }
-
-    return category;
-  } catch (err: any) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving category');
-  }
-};
 
 export const updateCategoryIdById = async (categoryId: string, updateData: Partial<ICategorybody>) => {
   try {
