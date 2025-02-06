@@ -1,7 +1,8 @@
 import mongoose, { Schema, Model, Types } from 'mongoose';
-import { ICategory } from '../types/ICategory';
+import { CategoryModel, ICategory } from '../types/ICategory';
+import paginate from './plugins/paginate';
 
-const categorySchema = new Schema<ICategory>({
+const categorySchema = new Schema<ICategory, CategoryModel>({
   brand: {
     type: Schema.Types.ObjectId,
     ref: 'Brand',
@@ -36,6 +37,8 @@ const categorySchema = new Schema<ICategory>({
   timestamps: true,
 });
 
-const Category: Model<ICategory> = mongoose.model<ICategory>('Category', categorySchema);
+categorySchema.plugin(paginate);
+
+const Category = mongoose.model<ICategory>('Category', categorySchema);
 
 export default Category;

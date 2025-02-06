@@ -5,79 +5,92 @@ import httpStatus from 'http-status';
 
 
 export const createNewBrand = async (brandBody: IBrandBody) => {
-    const brandData = {
-      ...brandBody,
-    };
-    return await Brand.create(brandData);
+  const brandData = {
+    ...brandBody,
   };
+  return await Brand.create(brandData);
+};
 
-  /**
- * Query for brands with pagination and options
- * @param {Object} options - Query options (e.g., pagination, sort, populate)
- * @returns {Promise<QueryResult>}
- */
+/**
+* Query for brands with pagination and options
+* @param {Object} options - Query options (e.g., pagination, sort, populate)
+* @returns {Promise<QueryResult>}
+*/
 
-  
-  export const fetchBrands = async () => {
-    try {
-      const brands = await Brand.paginate({}, {});
-        // const brands = await Brand.find();
-        
-        
-        if (!brands || brands.length === 0) {
-          throw new ApiError(httpStatus.NOT_FOUND, 'No brands found');
-        }
-    
-        return brands;
-      } catch (err: any) {
-        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
-      }
+
+export const fetchBrands = async (req: any) => {
+  try {
+
+    const page = req?.query?.page;
+    const limit = req?.query?.limit;
+    const query = req?.query?.search
+
+    const brands = await Brand.paginate({
+      brandName: { $regex: query, $options: 'i' }
+    }, {
+      page,
+      limit,
+
+    });
+    // const brands = await Brand.find();
+
+
+    if (!brands || brands.length === 0) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'No brands found');
+    }
+
+    return brands;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
   }
+}
 
-  export const fetchBrandsDropdown = async () => {
-    try {
-      const brands = await Brand.find({}, { _id: 1, brandName: 1 });
-  
-      if (!brands || brands.length === 0) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'No brands found');
-      }
-      return brands;
-    } catch (err: any) {
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
-    }
-  };
+export const fetchBrandsDropdown = async (req: any) => {
+  try {
+    const brands = await Brand.find({
+      brandName: { $regex: req?.query?.search, $options: 'i' },
+    }, { _id: 1, brandName: 1 }).limit(10)
 
-  export const getBrandByIdService = async (brandId: string) => {
-    try {
-      const brand = await Brand.findById(brandId);
+    // if (!brands || brands.length === 0) {
+    //   throw new ApiError(httpStatus.NOT_FOUND, 'No brands found');
+    // }
+    return brands;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
+  }
+};
 
-      if (!brand) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Brand not found');
-      }
-  
-      return brand;
-    } catch (err: any) {
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brand');
-    }
-  };
+export const getBrandByIdService = async (brandId: string) => {
+  try {
+    const brand = await Brand.findById(brandId);
 
-  export const updateBrandById = async (brandId: string, updateData: Partial<IBrandBody>) => {
-    try {
-      const brand = await Brand.findByIdAndUpdate(brandId, updateData, { new: true, runValidators: true });
-      if (!brand) throw new ApiError(httpStatus.NOT_FOUND, 'Brand not found');
-      return brand;
-    } catch (err: any) {
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error updating brand');
+    if (!brand) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Brand not found');
     }
-  };
-  
-  export const deleteBrandById = async (brandId: string) => {
-    try {
-      const brand = await Brand.findByIdAndDelete(brandId);
-      if (!brand) throw new ApiError(httpStatus.NOT_FOUND, 'Brand not found');
-      return brand;
-    } catch (err: any) {
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error deleting brand');
-    }
-  };
-  
+
+    return brand;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brand');
+  }
+};
+
+export const updateBrandById = async (brandId: string, updateData: Partial<IBrandBody>) => {
+  try {
+    const brand = await Brand.findByIdAndUpdate(brandId, updateData, { new: true, runValidators: true });
+    if (!brand) throw new ApiError(httpStatus.NOT_FOUND, 'Brand not found');
+    return brand;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error updating brand');
+  }
+};
+
+export const deleteBrandById = async (brandId: string) => {
+  try {
+    const brand = await Brand.findByIdAndDelete(brandId);
+    if (!brand) throw new ApiError(httpStatus.NOT_FOUND, 'Brand not found');
+    return brand;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error deleting brand');
+  }
+};
+
