@@ -21,7 +21,7 @@ export const createNewCategory = async (categoryBody: ICategorybody) => {
   export const fetchCategories = async () => {
     try {
         
-        const categories = await Category.find();
+        const categories = await Category.find().populate('brand', 'brandName');
         
         if (!categories || categories.length === 0) {
           throw new ApiError(httpStatus.NOT_FOUND, 'No categories found');
@@ -48,7 +48,7 @@ export const createNewCategory = async (categoryBody: ICategorybody) => {
 
   export const getCategoryByIdService = async (categoryId: string) => {
     try {
-      const category = await Category.findById(categoryId);
+      const category = await Category.findById(categoryId).populate('brand', 'brandName');
 
       if (!category) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Category not found');

@@ -21,7 +21,10 @@ export const createNewProduct = async (productbody: IProductbody) => {
   export const fetchProduct = async () => {
     try {
     //   const product = await Product.paginate({}, {});
-        const product = await Product.find();
+    const product = await Product.find()
+    .populate('brand', 'brandName')    
+    .populate('category', 'categoryName') 
+    .populate('series', 'seriesName'); 
         
         
         if (!product || product.length === 0) {
@@ -49,7 +52,9 @@ export const createNewProduct = async (productbody: IProductbody) => {
 
   export const getProductByIdService = async (productId: string) => {
     try {
-      const product = await Product.findById(productId);
+      const product = await Product.findById(productId).populate('brand', 'brandName')    
+      .populate('category', 'categoryName') 
+      .populate('series', 'seriesName'); ;
 
       if (!product) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Product not found');

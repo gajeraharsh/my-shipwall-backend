@@ -21,7 +21,7 @@ export const createNewSeries = async (seriesbody: ISeriesbody) => {
   export const fetchSeries = async () => {
     try {
     //   const series = await Series.paginate({}, {});
-        const series = await Series.find();
+        const series = await Series.find().populate('brand', 'brandName').populate('category', 'categoryName');
         
         
         if (!series || series.length === 0) {
@@ -49,7 +49,7 @@ export const createNewSeries = async (seriesbody: ISeriesbody) => {
 
   export const getSeriesByIdService = async (seriesId: string) => {
     try {
-      const series = await Series.findById(seriesId);
+      const series = await Series.findById(seriesId).populate('brand', 'brandName').populate('category', 'categoryName');
 
       if (!series) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Series not found');

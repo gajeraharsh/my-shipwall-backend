@@ -1,11 +1,11 @@
-import express from "express"; 
-import {uploadFiles} from '../controllers/fileUploads3Controller';
-import upload from "../middlewares/upload"
+import express from 'express';
+import {uploadFiles}  from '../controllers/fileUploads3Controller';
+import upload from '../middlewares/upload';
 
 const router = express.Router();
 
 const uploadFields = upload.fields([
-  { name: 'files', maxCount: 10 }, 
+  { name: 'files', maxCount: 10 },  
 ]);
 
 router
@@ -15,4 +15,4 @@ router
     uploadFiles
   );
 
-  export default router;
+export default router;
