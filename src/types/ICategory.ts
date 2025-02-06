@@ -23,6 +23,7 @@ export interface ICategorybody {
 }
 
 export interface ICategoryMethods {
+  paginate: any;
   // Add any instance methods if needed in the future
 }
 
