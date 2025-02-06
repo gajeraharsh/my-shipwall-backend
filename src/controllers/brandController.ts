@@ -25,7 +25,7 @@ export const createBrand = asyncHandler(async (req: Request, res: Response) => {
 
 export const getBrands = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const brands = await fetchBrands();
+    const brands = await fetchBrands(req);
     return res.status(200).json(new ApiResponse(200, { brands }, 'Brands retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve brands');
@@ -64,8 +64,14 @@ export const deleteBrand = asyncHandler(async (req: Request, res: Response) => {
 
 export const getBrandDropdown = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const brands = await fetchBrandsDropdown();
-    return res.status(200).json(new ApiResponse(200, { brands }, 'Brands retrieved successfully'));
+    const brands = await fetchBrandsDropdown(req);
+    const brandsOptions = brands?.map((item: any) => {
+      return {
+        label: item?.brandName,
+        value: item?._id
+      }
+    })
+    return res.status(200).json(new ApiResponse(200, { options: brandsOptions }, 'Brands retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve brands');
   }

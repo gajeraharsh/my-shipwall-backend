@@ -35,6 +35,8 @@ const paginate = <T extends Document>(schema: Schema<T>) => {
       sort = 'createdAt';
     }
 
+    console.log(options)
+
     const limit = options.limit && options.limit > 0 ? options.limit : 10;
     const page = options.page && options.page > 0 ? options.page : 1;
     const skip = (page - 1) * limit;

@@ -24,7 +24,7 @@ export const createCategory = asyncHandler(async (req: Request, res: Response) =
 
 export const getCategories = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const categories = await fetchCategories();
+    const categories = await fetchCategories(req);
     return res.status(200).json(new ApiResponse(200, { categories }, 'Categories retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve categories');
