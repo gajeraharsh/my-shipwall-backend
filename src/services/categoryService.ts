@@ -11,12 +11,26 @@ export const createNewCategory = async (categoryBody: ICategorybody) => {
   return await Category.create(categoryData);
 };
 
+
 /**
 * Query for categories with pagination and options
 * @param {Object} options - Query options (e.g., pagination, sort, populate)
 * @returns {Promise<QueryResult>}
 */
 
+
+
+  export const getCategoryByIdService = async (categoryId: string) => {
+    try {
+      const category = await Category.findById(categoryId).populate('brand', 'brandName');
+
+      if (!category) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Category not found');
+      }
+  
+      return category;
+    } catch (err: any) {
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving category');
 
 export const fetchCategories = async (req: any) => {
   try {

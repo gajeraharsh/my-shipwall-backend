@@ -6,8 +6,11 @@ import userRoutes from './routes/userRoutes';
 import brandRoutes from './routes/brandRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import seriesRoutes from './routes/seriesRoutes';
+import productRoutes from './routes/productRoutes';
+import fileUploadsRoutes from './routes/fileUploads3Routes';
 import ApiError from './utils/apiError';
 import cookieParser from 'cookie-parser'
+import fileUpload from "express-fileupload";
 
 dotenv.config();  // Load environment variables from .env file
 
@@ -17,6 +20,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser())
+app.use(fileUpload());
 
 
 // MongoDB connection
@@ -27,6 +31,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/brand', brandRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/series', seriesRoutes);
+app.use('/api/product', productRoutes);
+app.use('/api/filesUpload', fileUploadsRoutes);
 
 const errorHandler = (
     err: ApiError,  // Explicitly typing the error as ApiError
