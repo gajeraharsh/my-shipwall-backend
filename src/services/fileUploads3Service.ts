@@ -9,6 +9,7 @@ const s3Config = {
   S3_BUCKET_NAME: process.env.S3_BUCKET_NAME || 'YOUR_BUCKET_NAME',
 };
 
+console.log(process.env.AWS_ACCESS_KEY_ID)
 // Configure AWS
 AWS.config.update({
   accessKeyId: s3Config.AWS_ACCESS_KEY_ID,

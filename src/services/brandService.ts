@@ -47,9 +47,19 @@ export const fetchBrands = async (req: any) => {
 
 export const fetchBrandsDropdown = async (req: any) => {
   try {
-    const brands = await Brand.find({
-      brandName: { $regex: req?.query?.search, $options: 'i' },
-    }, { _id: 1, brandName: 1 }).limit(10)
+    const filter = req.query.search
+      ? { brandName: { $regex: req.query.search, $options: 'i' } }
+      : {};
+
+    const options = {
+      page: Number(req.query.page) || 1,
+      limit: Number(req.query.limit) || 10,
+      sortBy: 'brandName:asc', // Optional sorting
+      select: '_id brandName',
+      pagination: true, // Set to false if you want all results without pagination
+    };
+
+    const brands = await Brand.paginate(filter, options);
 
     // if (!brands || brands.length === 0) {
     //   throw new ApiError(httpStatus.NOT_FOUND, 'No brands found');
