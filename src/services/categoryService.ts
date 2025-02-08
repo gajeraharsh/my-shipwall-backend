@@ -2,13 +2,28 @@ import Category from '../models/Category';
 import ApiError from '../utils/apiError';
 import { ICategorybody } from '../types/ICategory';
 import httpStatus from 'http-status';
+import { Request } from 'express';
+import { uploadFileToS3 } from './fileUploads3Service';
 
 
-export const createNewCategory = async (categoryBody: ICategorybody) => {
-  const categoryData = {
-    ...categoryBody,
+export const createNewCategory = async (req: Request) => {
+
+  const data: ICategorybody = req?.body
+  const file = req.file as Express.Multer.File | undefined;
+
+  let iconImageUrl: string | null = null;
+
+  if (file) {
+    iconImageUrl = await uploadFileToS3(file, req.body.user?._id);
+  }
+
+
+  const input = {
+    ...data,
+    iconImageUrl
   };
-  return await Category.create(categoryData);
+
+  return await Category.create(input);
 };
 
 
@@ -43,6 +58,7 @@ export const fetchCategories = async (req: any) => {
     }, {
       page,
       limit,
+      populate: 'brand:_id|brandName'
     });
 
     if (!categories || categories.length === 0) {
@@ -69,9 +85,29 @@ export const fetchCategoriesDropdown = async () => {
 };
 
 
-export const updateCategoryIdById = async (categoryId: string, updateData: Partial<ICategorybody>) => {
+export const updateCategoryIdById = async (categoryId: string, req: Request) => {
   try {
-    const category = await Category.findByIdAndUpdate(categoryId, updateData, { new: true, runValidators: true });
+
+    const data: ICategorybody = req?.body
+    const file = req.file as Express.Multer.File | undefined;
+
+    let iconImageUrl: string | null = null;
+
+    if (file) {
+      iconImageUrl = await uploadFileToS3(file, req.body.user?._id);
+    }
+
+    const input: any = {
+      ...data,
+    };
+
+
+    if (iconImageUrl) {
+      input['iconImageUrl'] = iconImageUrl
+    }
+
+
+    const category = await Category.findByIdAndUpdate(categoryId, input, { new: true, runValidators: true });
     if (!category) throw new ApiError(httpStatus.NOT_FOUND, 'Category not found');
     return category;
   } catch (err: any) {

@@ -8,9 +8,15 @@ import categoryRoutes from './routes/categoryRoutes';
 import seriesRoutes from './routes/seriesRoutes';
 import productRoutes from './routes/productRoutes';
 import fileUploadsRoutes from './routes/fileUploads3Routes';
+import bannerRouttes from './routes/bannerRouttes';
+
+import colorMasterRoutes from './routes/colorMasterRoutes';
+import hsnCodeRoutes from './routes/hsnCodeRoutes';
+import generalSettingRoutes from './routes/generalSettingRoutes';
+
 import ApiError from './utils/apiError';
 import cookieParser from 'cookie-parser'
-import fileUpload from "express-fileupload";
+
 
 dotenv.config();  // Load environment variables from .env file
 
@@ -20,7 +26,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser())
-app.use(fileUpload());
 
 
 // MongoDB connection
@@ -33,6 +38,12 @@ app.use('/api/category', categoryRoutes);
 app.use('/api/series', seriesRoutes);
 app.use('/api/product', productRoutes);
 app.use('/api/filesUpload', fileUploadsRoutes);
+app.use('/api/banner', bannerRouttes);
+app.use('/api/hsn-code', hsnCodeRoutes);
+app.use('/api/color-master', colorMasterRoutes);
+app.use('/api/general-settings', generalSettingRoutes);
+
+
 
 const errorHandler = (
     err: ApiError,  // Explicitly typing the error as ApiError
@@ -47,11 +58,12 @@ const errorHandler = (
             errorDetails: err.error,  // Include the error details (custom property of ApiError)
         });
     }
-
+    console.log(err)
     // Fallback to a generic error handler for any unhandled errors
     return res.status(500).json({
         status: 'error',
         message: 'An unexpected error occurred',
+        err
     });
 };
 

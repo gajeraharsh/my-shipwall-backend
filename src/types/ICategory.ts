@@ -9,7 +9,8 @@ export interface ICategory extends Document {
   metaKeywords: string;
   iconImage: string;
   displayHome: boolean;
-  status: string | 'Draft' | "Published"
+  status: string | 'Draft' | "Published";
+  iconImageUrl?: string;
 }
 
 export interface ICategorybody {

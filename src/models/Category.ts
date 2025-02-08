@@ -34,6 +34,10 @@ const categorySchema = new Schema<ICategory, CategoryModel>({
     type: String,
     required: true,
   },
+  iconImageUrl: {
+    type: String,
+    required: true,
+  },
   displayHome: {
     type: Boolean,
     default: false,
