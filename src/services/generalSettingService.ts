@@ -7,7 +7,13 @@ export const getGeneralSettings = async () => {
     try {
         const generalSettings = await GeneralSettingModel.findOne({});
 
-        return generalSettings || 0;
+        if (!generalSettings) {
+            return {
+                generalshippingcost: 0
+            }
+        }
+
+        return generalSettings
     } catch (err: any) {
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error fetching general settings');
     }

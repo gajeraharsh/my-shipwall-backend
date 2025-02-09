@@ -9,6 +9,8 @@ export interface ISeries extends Document {
   pageTitle: string;
   metaKeywords: string;
   thumbImage: string;
+  thumbImageUrl?: string
+  status?: string;
 }
 
 export interface ISeriesbody {
@@ -23,6 +25,7 @@ export interface ISeriesbody {
 }
 
 export interface ISeriesMethods {
+  paginate: any
   // Add any instance methods if needed in the future
 }
 

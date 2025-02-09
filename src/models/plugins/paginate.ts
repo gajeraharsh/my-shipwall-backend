@@ -55,15 +55,15 @@ const paginate = <T extends Document>(schema: Schema<T>) => {
     }
 
     if (options.populate) {
-      options.populate.split(',').forEach((populateOption) => {
-        const [path, select] = populateOption.split(':');
-        docsQuery = docsQuery.populate({
-          path,
-          select: select ? select.replace(/\|/g, ' ') : '',
+      if (Array.isArray(options.populate)) {
+        options.populate.forEach((item) => {
+          docsQuery = docsQuery.populate(item.path, item.select);
         });
-      });
+      } else {
+        docsQuery = docsQuery.populate(options.populate);
+      }
     }
-
+    
     // ✅ Using await for proper resolution
     const [totalResults, results] = await Promise.all([
       countPromise,

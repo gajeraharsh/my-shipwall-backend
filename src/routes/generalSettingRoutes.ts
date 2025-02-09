@@ -15,6 +15,6 @@ router.route("/").get(getGeneralsetting);
 
 
 
-router.put("/:id", validate(createValidation), updateGeneralSetting);
+router.put("/", validate(createValidation), updateGeneralSetting);
 
 export default router;

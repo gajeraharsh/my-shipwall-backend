@@ -41,7 +41,7 @@ app.use('/api/filesUpload', fileUploadsRoutes);
 app.use('/api/banner', bannerRouttes);
 app.use('/api/hsn-code', hsnCodeRoutes);
 app.use('/api/color-master', colorMasterRoutes);
-app.use('/api/general-settings', generalSettingRoutes);
+app.use('/api/general-setting', generalSettingRoutes);
 
 
 

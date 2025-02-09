@@ -53,10 +53,9 @@ export const fetchBrandsDropdown = async (req: any) => {
 
     const options = {
       page: Number(req.query.page) || 1,
-      limit: Number(req.query.limit) || 1,
-      sortBy: 'brandName:asc', // Optional sorting
+      limit: Number(req.query.limit) || 5,
       select: '_id brandName',
-      pagination: true, // Set to false if you want all results without pagination
+      pagination: true,
     };
 
     const brands = await Brand.paginate(filter, options);

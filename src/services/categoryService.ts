@@ -58,7 +58,9 @@ export const fetchCategories = async (req: any) => {
     }, {
       page,
       limit,
-      populate: 'brand:_id|brandName'
+      populate: [
+        { path: 'brand', select: '_id brandName' },
+      ]
     });
 
     if (!categories || categories.length === 0) {
@@ -71,9 +73,21 @@ export const fetchCategories = async (req: any) => {
   }
 }
 
-export const fetchCategoriesDropdown = async () => {
+export const fetchCategoriesDropdown = async (req: Request) => {
   try {
-    const categories = await Category.find({}, { _id: 1, categoryName: 1 });
+    const filter = req.query.search
+      ? { categoryName: { $regex: req.query.search, $options: 'i' } }
+      : {};
+
+    const options = {
+      page: Number(req.query.page) || 1,
+      limit: Number(req.query.limit) || 5,
+      sortBy: 'categoryName:asc', // Optional sorting
+      select: '_id categoryName',
+      pagination: true, // Set to false if you want all results without pagination
+    };
+    // @ts-ignore
+    const categories = await Category.paginate(filter, options);
 
     if (!categories || categories.length === 0) {
       throw new ApiError(httpStatus.NOT_FOUND, 'No categories found');

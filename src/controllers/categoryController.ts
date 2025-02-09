@@ -63,8 +63,14 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response) =
 
 export const getCategoryDropdown = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const categories = await fetchCategoriesDropdown();
-    return res.status(200).json(new ApiResponse(200, { categories }, 'Categories retrieved successfully'));
+    const categories = await fetchCategoriesDropdown(req);
+    const options = categories?.results?.map((item: any) => {
+      return {
+        label: item?.categoryName,
+        value: item?._id
+      }
+    })
+    return res.status(200).json(new ApiResponse(200, { options }, 'Categories retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve categories');
   }
