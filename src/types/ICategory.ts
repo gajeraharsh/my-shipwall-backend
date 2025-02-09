@@ -9,6 +9,8 @@ export interface ICategory extends Document {
   metaKeywords: string;
   iconImage: string;
   displayHome: boolean;
+  status: string | 'Draft' | "Published";
+  iconImageUrl?: string;
 }
 
 export interface ICategorybody {
@@ -20,7 +22,9 @@ export interface ICategorybody {
   metaKeywords?: string;
   iconImage?: string;
   displayHome?: boolean;
+  status?: string
 }
+
 
 export interface ICategoryMethods {
   paginate: any;

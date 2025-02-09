@@ -65,7 +65,7 @@ export const deleteBrand = asyncHandler(async (req: Request, res: Response) => {
 export const getBrandDropdown = asyncHandler(async (req: Request, res: Response) => {
   try {
     const brands = await fetchBrandsDropdown(req);
-    const brandsOptions = brands?.map((item: any) => {
+    const brandsOptions = brands?.results?.map((item: any) => {
       return {
         label: item?.brandName,
         value: item?._id

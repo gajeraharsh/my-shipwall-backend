@@ -8,6 +8,11 @@ const categorySchema = new Schema<ICategory, CategoryModel>({
     ref: 'Brand',
     required: true,
   },
+  status: {
+    type: String,
+    enum: ['Draft', 'Published'],
+    default: "Draft",
+  },
   categoryName: {
     type: String,
     required: true,
@@ -26,6 +31,10 @@ const categorySchema = new Schema<ICategory, CategoryModel>({
     type: String,
   },
   iconImage: {
+    type: String,
+    required: true,
+  },
+  iconImageUrl: {
     type: String,
     required: true,
   },
