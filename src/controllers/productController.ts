@@ -15,7 +15,7 @@ import httpStatus from 'http-status';
 
 export const createProducts = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const product = await createNewProduct(req.body);
+    const product = await createNewProduct(req);
     return res.status(200).json(new ApiResponse(200, { product }, 'Created Successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Not created');
@@ -24,7 +24,7 @@ export const createProducts = asyncHandler(async (req: Request, res: Response) =
 
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const products = await fetchProduct();
+    const products = await fetchProduct(req);
     return res.status(200).json(new ApiResponse(200, { products }, 'Products retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve products');
@@ -44,7 +44,7 @@ export const getProductById = asyncHandler(async (req: Request, res: Response) =
 export const updateProduct = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updatedProduct = await updateProductById(id, req.body);
+    const updatedProduct = await updateProductById(id, req);
     return res.status(200).json(new ApiResponse(200, { updatedProduct }, 'Product updated successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not update Product');

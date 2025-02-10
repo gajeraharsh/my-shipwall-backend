@@ -51,6 +51,8 @@ const errorHandler = (
     res: Response,
     next: NextFunction
 ): Response => {  // Explicit return type
+    console.log(err)
+
     if (err instanceof ApiError) {
         return res.status(err.statusCode).json({
             status: 'error',
@@ -58,7 +60,6 @@ const errorHandler = (
             errorDetails: err.error,  // Include the error details (custom property of ApiError)
         });
     }
-    console.log(err)
     // Fallback to a generic error handler for any unhandled errors
     return res.status(500).json({
         status: 'error',

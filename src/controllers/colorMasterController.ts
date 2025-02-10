@@ -64,7 +64,7 @@ export const getColorMasterDropDown = asyncHandler(async (req: Request, res: Res
         const colorMasters = await fetchColorMasterDropdown(req);
         const colorMastersOptions = colorMasters?.results?.map((item: any) => {
             return {
-                label: item?.brandName,
+                label: item?.colorName,
                 value: item?._id
             }
         })

@@ -4,12 +4,12 @@ export interface IProduct extends Document {
   brand: Types.ObjectId;
   category: Types.ObjectId;
   series: Types.ObjectId;
-  hsnCode: string;
+  hsnCode: Types.ObjectId;
   productName: string;
   productUrl: string;
   modelNo: string;
   watt: string;
-  color: string;
+  color: Types.ObjectId;
   bodyColor: string;
   price: string;
   stock: string;
@@ -19,27 +19,30 @@ export interface IProduct extends Document {
   structure: string;
   boxQuantity: string;
   dataSheet: string;
+  productThumbImageUrl?: string;
+  dataSheetUrl?: string;
+  status?: string
 }
 
 export interface IProductbody {
-    brand: Types.ObjectId;
-    category: Types.ObjectId;
-    series: Types.ObjectId;
-    hsnCode?: string;
-    productName?: string;
-    productUrl?: string;
-    modelNo?: string;
-    watt?: string;
-    color?: string;
-    bodyColor?: string;
-    price?: string;
-    stock?: string;
-    featureProduct?: string;
-    newArrivals?: string;
-    productThumbImage?: string;
-    structure?: string;
-    boxQuantity?: string;
-    dataSheet?: string;
+  brand: Types.ObjectId;
+  category: Types.ObjectId;
+  series: Types.ObjectId;
+  hsnCode?: string;
+  productName?: string;
+  productUrl?: string;
+  modelNo?: string;
+  watt?: string;
+  color?: string;
+  bodyColor?: string;
+  price?: string;
+  stock?: string;
+  featureProduct?: string;
+  newArrivals?: string;
+  productThumbImage?: string;
+  structure?: string;
+  boxQuantity?: string;
+  dataSheet?: string;
 }
 
 export interface IProductMethods {

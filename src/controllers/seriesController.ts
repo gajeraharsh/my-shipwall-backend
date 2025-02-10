@@ -62,8 +62,15 @@ export const deleteSeries = asyncHandler(async (req: Request, res: Response) => 
 
 export const getSeriesDropdown = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const seriesList = await fetchSeriesDropdown();
-    return res.status(200).json(new ApiResponse(200, { seriesList }, 'Series retrieved successfully'));
+    const seriesList = await fetchSeriesDropdown(req);
+    const options = seriesList?.results?.map((item: any) => {
+      return {
+        label: item?.seriesName,
+        value: item?._id
+      }
+    })
+
+    return res.status(200).json(new ApiResponse(200, { options }, 'Series retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve series');
   }

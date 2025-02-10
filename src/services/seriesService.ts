@@ -63,9 +63,23 @@ export const fetchSeries = async (req: Request) => {
   }
 }
 
-export const fetchSeriesDropdown = async () => {
+export const fetchSeriesDropdown = async (req: Request) => {
   try {
-    const series = await Series.find({}, { _id: 1, seriesName: 1 });
+    const filter = req.query.search
+      ? { categoryName: { $regex: req.query.search, $options: 'i' } }
+      : {};
+
+    const options = {
+      page: Number(req.query.page) || 1,
+      limit: Number(req.query.limit) || 5,
+      sortBy: 'seriesName:asc', // Optional sorting
+      select: '_id seriesName',
+      pagination: true, // Set to false if you want all results without pagination
+    };
+    // @ts-ignore
+    const series = await Series.paginate(filter, options);
+
+    // const series = await Series.find({}, { _id: 1, seriesName: 1 });
 
     if (!series || series.length === 0) {
       throw new ApiError(httpStatus.NOT_FOUND, 'No series found');

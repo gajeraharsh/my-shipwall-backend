@@ -19,7 +19,8 @@ const productSchema = new Schema<IProduct, ProductModel>({
     required: true,
   },
   hsnCode: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'HsnciodeModel',
     required: true,
   },
   productName: {
@@ -39,7 +40,8 @@ const productSchema = new Schema<IProduct, ProductModel>({
     required: true,
   },
   color: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'ColorMaster',
     required: true,
   },
   bodyColor: {
@@ -64,6 +66,10 @@ const productSchema = new Schema<IProduct, ProductModel>({
     type: String,
     required: true,
   },
+  productThumbImageUrl: {
+    type: String,
+    required: true,
+  },
   structure: {
     type: String,
   },
@@ -74,6 +80,16 @@ const productSchema = new Schema<IProduct, ProductModel>({
     type: String,
     required: true,
   },
+  dataSheetUrl: {
+    type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ['Draft', 'Published'],
+    default: "Draft",
+  },
+
 }, {
   timestamps: true,
 });
