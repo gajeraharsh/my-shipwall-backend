@@ -13,8 +13,8 @@ export interface IProduct extends Document {
   bodyColor: string;
   price: string;
   stock: string;
-  featureProduct: string;
-  newArrivals: string;
+  featureProduct: boolean;
+  newArrivals: boolean;
   productThumbImage: string;
   structure: string;
   boxQuantity: string;
@@ -37,8 +37,8 @@ export interface IProductbody {
   bodyColor?: string;
   price?: string;
   stock?: string;
-  featureProduct?: string;
-  newArrivals?: string;
+  featureProduct?: boolean;
+  newArrivals?: boolean;
   productThumbImage?: string;
   structure?: string;
   boxQuantity?: string;

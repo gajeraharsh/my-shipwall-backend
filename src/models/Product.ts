@@ -57,10 +57,10 @@ const productSchema = new Schema<IProduct, ProductModel>({
     required: true,
   },
   featureProduct: {
-    type: String,
+    type: Boolean,
   },
   newArrivals: {
-    type: String,
+    type: Boolean,
   },
   productThumbImage: {
     type: String,

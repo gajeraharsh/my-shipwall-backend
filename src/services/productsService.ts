@@ -100,7 +100,9 @@ export const getProductByIdService = async (productId: string) => {
   try {
     const product = await Product.findById(productId).populate('brand', 'brandName')
       .populate('category', 'categoryName')
-      .populate('series', 'seriesName');;
+      .populate('series', 'seriesName')
+      .populate('hsnCode', 'code')
+      .populate('color', 'colorName')
 
     if (!product) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Product not found');
