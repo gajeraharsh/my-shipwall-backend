@@ -24,9 +24,13 @@ export const uploadFileToS3 = async (
   userId: string
 ): Promise<string> => {
   try {
+
+    const folderName = process.env.AWS_FOLDER_NAME
+    console.log(userId)
     const params = {
       Bucket: s3Config.S3_BUCKET_NAME,
-      Key: `${userId}/${Date.now()}_${file.originalname}`,
+      Key: `${folderName}/${userId}/${Date.now()}_${file.originalname}`, // Store in 'shipwall/userId/' folder
+      // Key: `${userId}/${Date.now()}_${file.originalname}`,
       Body: file.buffer,      // from multer.memoryStorage()
       ContentType: file.mimetype,
     };

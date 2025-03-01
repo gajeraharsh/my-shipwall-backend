@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/server.ts",
+    "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
@@ -30,14 +30,14 @@
     "mongoose": "^8.9.5",
     "mongoose-paginate-v2": "^1.9.0",
     "multer": "^1.4.5-lts.1",
-    "nodemon": "^3.1.9",
-    "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/express-fileupload": "^1.5.1",
     "@types/multer": "^1.4.12",
-    "@types/node": "^22.13.1"
+    "@types/node": "^22.13.1",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2"
   }
 }

@@ -34,7 +34,7 @@ export const fetchBanners = async (req: any) => {
 
         const page = req?.query?.page;
         const limit = req?.query?.limit;
-        const query = req?.query?.search
+        const query = req?.query?.search || ''
 
         const banners = await Banner.paginate({
             bannerName: { $regex: query, $options: 'i' }
@@ -50,6 +50,7 @@ export const fetchBanners = async (req: any) => {
 
         return banners;
     } catch (err: any) {
+        console.log(err)
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving banners');
     }
 }

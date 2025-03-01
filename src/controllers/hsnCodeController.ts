@@ -64,7 +64,7 @@ export const getHsnDropdown = asyncHandler(async (req: Request, res: Response) =
         const hsnCodes = await fetchHsnCodeDropdown(req);
         const hsnCodesOptions = hsnCodes?.results?.map((item: any) => {
             return {
-                label: item?.brandName,
+                label: item?.code,
                 value: item?._id
             }
         })
