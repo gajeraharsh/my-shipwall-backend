@@ -14,7 +14,7 @@ import httpStatus from 'http-status';
 
 export const createSeries = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const series = await createNewSeries(req.body);
+    const series = await createNewSeries(req);
     return res.status(200).json(new ApiResponse(200, { series }, 'Series created successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Series not created');
@@ -23,7 +23,7 @@ export const createSeries = asyncHandler(async (req: Request, res: Response) => 
 
 export const getSeries = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const seriesList = await fetchSeries();
+    const seriesList = await fetchSeries(req);
     return res.status(200).json(new ApiResponse(200, { seriesList }, 'Series retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve series');
@@ -43,7 +43,7 @@ export const getSeriesById = asyncHandler(async (req: Request, res: Response) =>
 export const updateSeries = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updatedSeries = await updateSeriesById(id, req.body);
+    const updatedSeries = await updateSeriesById(id, req);
     return res.status(200).json(new ApiResponse(200, { updatedSeries }, 'Series updated successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not update series');
@@ -62,8 +62,15 @@ export const deleteSeries = asyncHandler(async (req: Request, res: Response) => 
 
 export const getSeriesDropdown = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const seriesList = await fetchSeriesDropdown();
-    return res.status(200).json(new ApiResponse(200, { seriesList }, 'Series retrieved successfully'));
+    const seriesList = await fetchSeriesDropdown(req);
+    const options = seriesList?.results?.map((item: any) => {
+      return {
+        label: item?.seriesName,
+        value: item?._id
+      }
+    })
+
+    return res.status(200).json(new ApiResponse(200, { options }, 'Series retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve series');
   }

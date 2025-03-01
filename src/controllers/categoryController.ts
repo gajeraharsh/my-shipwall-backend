@@ -15,7 +15,7 @@ import httpStatus from 'http-status';
 
 export const createCategory = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const category = await createNewCategory(req.body);
+    const category = await createNewCategory(req);
     return res.status(200).json(new ApiResponse(200, { category }, 'Created Successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Not created');
@@ -44,7 +44,7 @@ export const getCatehgoryById = asyncHandler(async (req: Request, res: Response)
 export const updateCategory = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updatedCategory = await updateCategoryIdById(id, req.body);
+    const updatedCategory = await updateCategoryIdById(id, req);
     return res.status(200).json(new ApiResponse(200, { updatedCategory }, 'Category updated successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not update category');
@@ -63,8 +63,14 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response) =
 
 export const getCategoryDropdown = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const categories = await fetchCategoriesDropdown();
-    return res.status(200).json(new ApiResponse(200, { categories }, 'Categories retrieved successfully'));
+    const categories = await fetchCategoriesDropdown(req);
+    const options = categories?.results?.map((item: any) => {
+      return {
+        label: item?.categoryName,
+        value: item?._id
+      }
+    })
+    return res.status(200).json(new ApiResponse(200, { options }, 'Categories retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve categories');
   }

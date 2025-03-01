@@ -7,7 +7,9 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema({
   userName: {
     type: String,
     required: false,
-    unique: true,
+  },
+  fullName: {
+    type: String,
   },
   logginId: {
     type: String,
@@ -17,12 +19,10 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
   },
   phone: {
     type: String,
     required: true,
-    unique: true,
   },
   profileImage: {
     type: String,

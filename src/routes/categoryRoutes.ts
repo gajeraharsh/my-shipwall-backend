@@ -13,19 +13,31 @@ import {
   getCategoryValidation,
   updateCategoryValidation,
   deleteCategoryValidation,
-} from "../validations/category"; 
+} from "../validations/category";
+import { verifyJWT } from "../middlewares/auth.middleware";
+import upload from "../middlewares/upload";
 
 const router = express.Router();
 
-router.route("/").post(validate(createCategoryValidation), createCategory);
+router.route("/").post(verifyJWT, upload.single("iconImage"), (req, res, next) => {
+  if (req.file) {
+    req.body.iconImage = req.file.originalname;
+  }
+  next();
+}, validate(createCategoryValidation), createCategory);
 
-router.route("/").get(getCategories);
+router.route("/").get(verifyJWT, getCategories);
 
-router.route("/dropDown").get(getCategoryDropdown);
+router.route("/dropDown").get(verifyJWT, getCategoryDropdown);
 
-router.route("/:id").get(validate(getCategoryValidation), getCatehgoryById);
+router.route("/:id").get(verifyJWT, validate(getCategoryValidation), getCatehgoryById);
 
-router.put("/:id", validate(updateCategoryValidation), updateCategory);
-router.delete("/:id", validate(deleteCategoryValidation), deleteCategory);
+router.put("/:id", verifyJWT, upload.single("iconImage"), (req, res, next) => {
+  if (req.file) {
+    req.body.iconImage = req.file.originalname;
+  }
+  next();
+}, validate(updateCategoryValidation), updateCategory);
+router.delete("/:id", verifyJWT, validate(deleteCategoryValidation), deleteCategory);
 
 export default router;

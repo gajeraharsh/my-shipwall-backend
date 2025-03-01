@@ -6,8 +6,19 @@ import userRoutes from './routes/userRoutes';
 import brandRoutes from './routes/brandRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import seriesRoutes from './routes/seriesRoutes';
+import productRoutes from './routes/productRoutes';
+import fileUploadsRoutes from './routes/fileUploads3Routes';
+import bannerRouttes from './routes/bannerRouttes';
+
+import colorMasterRoutes from './routes/colorMasterRoutes';
+import hsnCodeRoutes from './routes/hsnCodeRoutes';
+import generalSettingRoutes from './routes/generalSettingRoutes';
+import webRoutes from './routes/webRoutes';
+
+
 import ApiError from './utils/apiError';
 import cookieParser from 'cookie-parser'
+
 
 dotenv.config();  // Load environment variables from .env file
 
@@ -27,6 +38,15 @@ app.use('/api/users', userRoutes);
 app.use('/api/brand', brandRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/series', seriesRoutes);
+app.use('/api/product', productRoutes);
+app.use('/api/filesUpload', fileUploadsRoutes);
+app.use('/api/banner', bannerRouttes);
+app.use('/api/hsn-code', hsnCodeRoutes);
+app.use('/api/color-master', colorMasterRoutes);
+app.use('/api/general-setting', generalSettingRoutes);
+app.use('/api/web', webRoutes)
+
+
 
 const errorHandler = (
     err: ApiError,  // Explicitly typing the error as ApiError
@@ -34,6 +54,8 @@ const errorHandler = (
     res: Response,
     next: NextFunction
 ): Response => {  // Explicit return type
+    console.log(err)
+
     if (err instanceof ApiError) {
         return res.status(err.statusCode).json({
             status: 'error',
@@ -41,11 +63,11 @@ const errorHandler = (
             errorDetails: err.error,  // Include the error details (custom property of ApiError)
         });
     }
-
     // Fallback to a generic error handler for any unhandled errors
     return res.status(500).json({
         status: 'error',
         message: 'An unexpected error occurred',
+        err
     });
 };
 
