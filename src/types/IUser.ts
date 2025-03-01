@@ -29,7 +29,8 @@ export interface IUserBody {
   gstNumber?: string;
   role: 'admin' | 'user' | 'sale_admin' | 'sale_member';
   password: string;
-  confirmPassword: string
+  confirmPassword: string,
+  fullName?: string;        // Optional fullName
 }
 
 

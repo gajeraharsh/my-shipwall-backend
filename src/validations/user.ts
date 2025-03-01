@@ -18,6 +18,14 @@ const userValidationSchema = Joi.object<IUserBody>({
         }),
         otherwise: Joi.optional(),
     }),
+    fullName: Joi.string().when('role', {
+        is: Joi.valid('user'),
+        then: Joi.required().messages({
+            'string.base': 'Full name must be a string.',
+            'any.required': 'Full name is required for user role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
     email: Joi.string().email().required().messages({
         'string.base': 'Email must be a string.',
         'string.email': 'Please provide a valid email address.',

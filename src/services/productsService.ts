@@ -55,11 +55,27 @@ export const fetchProduct = async (req: Request) => {
 
     const page = req?.query?.page;
     const limit = req?.query?.limit;
-    const query = req?.query?.search
+    const query = req?.query?.search || ''
+
+    const {
+      featureProduct = null,
+      newArrivals = null
+    } = req?.query;
+
+    let where: any = {}
+
+    if (featureProduct) {
+      where['featureProduct'] = featureProduct
+    }
+
+    if (newArrivals) {
+      where['newArrivals'] = newArrivals
+    }
 
     /// @ts-ignore
     const product = await Product.paginate({
-      productName: { $regex: query, $options: 'i' }
+      productName: { $regex: query, $options: 'i' },
+      ...where
     }, {
       page,
       limit,
@@ -79,7 +95,7 @@ export const fetchProduct = async (req: Request) => {
 
     return product;
   } catch (err: any) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving products');
   }
 }
 
@@ -124,7 +140,7 @@ export const updateProductById = async (productId: string, req: Request) => {
     let dataSheetUrl: string | null = null;
 
     if (files?.productThumbImage?.[0]) {
-      productThumbImageUrl = await uploadFileToS3(files.productThumbImage[0], req.body.user?._id);
+      productThumbImageUrl = await uploadFileToS3(files.productThumbImage[0], req.user?._id);
     }
 
     if (files?.dataSheet?.[0]) {

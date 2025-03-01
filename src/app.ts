@@ -13,6 +13,8 @@ import bannerRouttes from './routes/bannerRouttes';
 import colorMasterRoutes from './routes/colorMasterRoutes';
 import hsnCodeRoutes from './routes/hsnCodeRoutes';
 import generalSettingRoutes from './routes/generalSettingRoutes';
+import webRoutes from './routes/webRoutes';
+
 
 import ApiError from './utils/apiError';
 import cookieParser from 'cookie-parser'
@@ -42,6 +44,7 @@ app.use('/api/banner', bannerRouttes);
 app.use('/api/hsn-code', hsnCodeRoutes);
 app.use('/api/color-master', colorMasterRoutes);
 app.use('/api/general-setting', generalSettingRoutes);
+app.use('/api/web', webRoutes)
 
 
 

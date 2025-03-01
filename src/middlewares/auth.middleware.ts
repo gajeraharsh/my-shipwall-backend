@@ -38,3 +38,12 @@ export const verifyJWT = asyncHandler(async (req: Request, res: Response, next: 
         throw new ApiError(401, error?.message || "Invalid access token");
     }
 });
+
+
+export const authorizeRoles = (...roles: string[]) =>
+    asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            throw new ApiError(403, "Forbidden: You don't have permission to access this resource");
+        }
+        next();
+    });
