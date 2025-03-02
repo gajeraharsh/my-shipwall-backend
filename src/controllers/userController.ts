@@ -78,7 +78,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   const isPasswordValid = await user.isPasswordCorrect(password)
 
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid user credentials")
+    throw new ApiError(500, "Invalid user credentials")
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user._id)
@@ -153,3 +153,10 @@ export const getUsers = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+  
+export const getUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
+  return res.status(200).json(
+    new ApiResponse(200, {user:req.user}, "User retrivied successfully")
+  )
+});
