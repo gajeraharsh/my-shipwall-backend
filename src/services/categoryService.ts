@@ -54,7 +54,7 @@ export const fetchCategories = async (req: any) => {
 
     /// @ts-ignore
     const categories = await Category.paginate({
-      categoryName: { $regex: query, $options: 'i' }
+      categoryName: { $regex: query ?? "", $options: 'i' }
     }, {
       page,
       limit,

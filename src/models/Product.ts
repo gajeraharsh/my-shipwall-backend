@@ -89,7 +89,39 @@ const productSchema = new Schema<IProduct, ProductModel>({
     enum: ['Draft', 'Published'],
     default: "Draft",
   },
-
+  metaDescription: {
+    type: String,
+  },
+  pageTitle: {
+    type: String,
+  },
+  metaKeys: {
+    type: String,
+  },
+  shortDescription: {
+    type: String,
+  },
+  description: {
+    type: String,
+  },
+  technicalInfo: {
+    type: String,
+  },
+  dimension: {
+    type: String,
+  },
+  packaging: {
+    type: String,
+  },
+  additionalInfo: {
+    type: String,
+  },
+  gallery: [
+    {
+      url: { type: String, required: true },
+      position: { type: Number, required: true },
+    },
+  ],
 }, {
   timestamps: true,
 });

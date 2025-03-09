@@ -3,54 +3,103 @@ import { IUserMethods, IUserModal, UserModel } from '../types/IUser';
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
-const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema({
-  userName: {
-    type: String,
-    required: false,
+const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
+  {
+    userName: {
+      type: String,
+      required: false,
+    },
+    fullName: {
+      type: String,
+    },
+    logginId: {
+      type: String,
+      required: false,
+      unique: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true, // Ensure email is unique
+    },
+    phone: {
+      type: String,
+      required: true,
+      unique: true, // Ensure phone is unique
+    },
+    profileImage: {
+      type: String,
+      required: false,
+    },
+    businessName: {
+      type: String,
+      required: false,
+    },
+    businessType: {
+      type: String,
+      required: false,
+    },
+    gstNumber: {
+      type: String,
+      required: false,
+    },
+    panNumber: {
+      type: String,
+      required: false,
+    },
+    role: {
+      type: String,
+      required: true,
+      enum: ['admin', 'user', 'sale_admin', 'sale_member'],
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    refreshToken: {
+      type: String,
+    },
+    billingAddress: {
+      line1: { type: String, required: false },
+      line2: { type: String },
+      pincode: { type: String, required: true },
+      state: { type: String, required: false },
+      city: { type: String, required: false },
+      country: { type: String, required: false },
+      landmark: { type: String, required: false },
+    },
+    deliveryAddress: {
+      line1: { type: String, required: false },
+      line2: { type: String },
+      pincode: { type: String, required: false },
+      state: { type: String, required: false },
+      city: { type: String, required: false },
+      country: { type: String, required: false },
+      location: { type: String, required: false },
+      landmark: { type: String, required: false },
+    },
+    documents: {
+      profilePhoto: { type: String },
+      businessFrontPremisesPhoto: { type: String },
+      businessStockWithOwnerPhoto: { type: String },
+      ownerPhoto: { type: String },
+      visitingCardPhoto: { type: String },
+      gstCertificate: { type: String },
+      businessAddressProof: { type: String },
+    },
+    docStatus: {
+      type: String,
+      enum: ['Verified', 'Pending', 'Rejected'],
+      default: 'Pending',
+    },
+    sameAsBilling: {
+      type: Boolean,
+      default: false,
+    },
   },
-  fullName: {
-    type: String,
-  },
-  logginId: {
-    type: String,
-    required: false,
-    unique: true,
-  },
-  email: {
-    type: String,
-    required: true,
-  },
-  phone: {
-    type: String,
-    required: true,
-  },
-  profileImage: {
-    type: String,
-    required: false,
-  },
-  businessName: {
-    type: String,
-    required: false,
-  },
-  gstNumber: {
-    type: String,
-    required: false,
-  },
-  role: {
-    type: String,
-    require: true,
-    enum: ["admin", "user", 'sale_admin', "sale_member"]
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  refreshToken: {
-    type: String
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true,
-}
 );
 
 

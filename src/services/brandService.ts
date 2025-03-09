@@ -23,7 +23,7 @@ export const fetchBrands = async (req: any) => {
 
     const page = req?.query?.page;
     const limit = req?.query?.limit;
-    const query = req?.query?.search
+    const query = req?.query?.search ?? ''
 
     const brands = await Brand.paginate({
       brandName: { $regex: query, $options: 'i' }

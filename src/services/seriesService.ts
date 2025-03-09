@@ -38,7 +38,7 @@ export const fetchSeries = async (req: Request) => {
 
     // @ts-ignore
     const series = await Series.paginate({
-      seriesName: { $regex: query, $options: 'i' }
+      seriesName: { $regex: query ?? '', $options: 'i' }
     }, {
       page,
       limit,
@@ -59,7 +59,9 @@ export const fetchSeries = async (req: Request) => {
 
     return series;
   } catch (err: any) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
+    console.log(err);
+     
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving series');
   }
 }
 

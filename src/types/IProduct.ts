@@ -1,5 +1,11 @@
 import { Document, Types, Model } from 'mongoose';
 
+
+interface IGalleryImage {
+  url: string;
+  position: number;
+}
+
 export interface IProduct extends Document {
   brand: Types.ObjectId;
   category: Types.ObjectId;
@@ -21,7 +27,17 @@ export interface IProduct extends Document {
   dataSheet: string;
   productThumbImageUrl?: string;
   dataSheetUrl?: string;
-  status?: string
+  status?: string;
+  metaDescription?: string,
+  pageTitle?: string,
+  metaKeys?: string,
+  shortDescription?: string,
+  description?: string,
+  technicalInfo?: string,
+  dimension?: string,
+  packaging?: string,
+  additionalInfo?: string,
+  gallery: IGalleryImage[];
 }
 
 export interface IProductbody {
@@ -43,6 +59,15 @@ export interface IProductbody {
   structure?: string;
   boxQuantity?: string;
   dataSheet?: string;
+  metaDescription?: string,
+  pageTitle?: string,
+  metaKeys?: string,
+  shortDescription?: string,
+  description?: string,
+  technicalInfo?: string,
+  dimension?: string,
+  packaging?: string,
+  additionalInfo?: string,
 }
 
 export interface IProductMethods {
