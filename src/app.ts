@@ -46,7 +46,9 @@ app.use('/api/color-master', colorMasterRoutes);
 app.use('/api/general-setting', generalSettingRoutes);
 app.use('/api/web', webRoutes)
 
-
+app.get('/test', (req: Request, res: Response) => {
+    res.json({ message: 'API is working!' });
+});
 
 const errorHandler = (
     err: ApiError,  // Explicitly typing the error as ApiError
