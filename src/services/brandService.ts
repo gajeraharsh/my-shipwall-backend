@@ -2,6 +2,7 @@ import Brand from '../models/Brand';
 import ApiError from '../utils/apiError';
 import { IBrandBody } from '../types/IBrand';
 import httpStatus from 'http-status';
+import mongoose from 'mongoose';
 
 
 
@@ -31,7 +32,7 @@ export const fetchBrands = async (req: any) => {
     }, {
       page,
       limit,
-
+      sortBy: 'position:asc',
     });
     // const brands = await Brand.find();
 
@@ -106,9 +107,15 @@ export const deleteBrandById = async (brandId: string) => {
 
 export const fetchAllBrands = async (req: any) => {
   try {
-    const brands = await Brand.find()
+    const filter = {}; // No specific filter to get all brands
+    const options = {
+      sortBy: 'position:asc', // Sort by position in ascending order
+      pagination: false, // Fetch all brands without pagination
+    };
 
-    return brands;
+    const brands = await Brand.paginate(filter, options);
+
+    return brands.results; // Return only the results array
   } catch (err: any) {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
   }
@@ -116,18 +123,24 @@ export const fetchAllBrands = async (req: any) => {
 
 export const updateBrandOrderService = async (brands: { _id: string }[]) => {
   try {
+    if (!brands || brands.length === 0) {
+      throw new ApiError(400, "Invalid brand list");
+    }
+
+
     const bulkOps = brands.map((brand, index) => ({
       updateOne: {
-        filter: { _id: brand._id },
-        update: { position: index },
+        filter: { _id: brand },
+        update: { $set: { position: index + 1 } }, // Change the value slightly
+        upsert: true, // Ensures update happens even if no change detected
       },
     }));
 
-    await Brand.bulkWrite(bulkOps);
+    const result = await Brand.bulkWrite(bulkOps);
 
-    return { success: true, message: "Brand order updated successfully" };
+    return { success: true, message: "Brand order updated successfully", result };
   } catch (err: any) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error updating brand order");
+    throw new ApiError(500, "Error updating brand order: " + err.message);
   }
 };
 

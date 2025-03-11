@@ -91,7 +91,7 @@ export const getBrandDropdown = asyncHandler(async (req: Request, res: Response)
 
 export const updateBrandOrderController = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const updatedBrand = await updateBrandOrderService(req?.body?.brands || []);
+    const updatedBrand = await updateBrandOrderService(req?.body?.ids || []);
     return res.status(200).json(new ApiResponse(200, { updatedBrand }, 'Brand order updated successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not update brand order');
