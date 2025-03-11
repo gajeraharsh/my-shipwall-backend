@@ -80,7 +80,15 @@ const userValidationLoginSchema = Joi.object({
 }).or('phone', 'userName', 'logginId'); // Ensures at least one of these is provided
 
 
+const userChangePasswordSchema = Joi.object({
+    currentPassword: Joi.string().required(),
+    newPassword: Joi.string().required(),
+    confirmPassword: Joi.string().required()
+});
+
+
 export {
     userValidationSchema,
-    userValidationLoginSchema
+    userValidationLoginSchema,
+    userChangePasswordSchema
 };

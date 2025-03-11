@@ -11,6 +11,9 @@ import { createOrder, getOrderbyId, getOrders } from "../controllers/orderContro
 import { getBrands } from "../controllers/brandController";
 import { getCategoriesByBrand } from "../controllers/Web/categoriesController";
 import upload from "../middlewares/upload";
+import validate from "../middlewares/validate";
+import { createSupportValidation, deleteSupportValidation, getSupportValidation, updateSupportValidation } from "../validations/supportValidation";
+import { createSupport, deleteSupport, getSupportById, getSupports, updateSupport } from "../controllers/supportController";
 
 const router = express.Router();
 
@@ -92,6 +95,19 @@ router.get("/cart/", verifyJWT, getCart);
 router.get("/order", verifyJWT, getOrders);
 router.get("/order/orderId", verifyJWT, getOrderbyId);
 router.post("/order/create", verifyJWT, createOrder);
+
+
+// support
+router.route("/support").post(verifyJWT, upload.single("issueImage"), (req, res, next) => {
+    if (req.file) {
+        req.body.issueImage = req.file.originalname;
+    }
+    next();
+}, validate(createSupportValidation), createSupport);
+router.route("/support").get(verifyJWT, getSupports);
+router.route("/support/:id").get(verifyJWT, validate(getSupportValidation), getSupportById);
+router.put("/support/:id", verifyJWT, validate(updateSupportValidation), updateSupport);
+router.delete("/support/:id", verifyJWT, validate(deleteSupportValidation), deleteSupport);
 
 
 

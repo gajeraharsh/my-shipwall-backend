@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import User from '../models/User';
-import { userValidationSchema, userValidationLoginSchema } from '../validations/user';
+import { userValidationSchema, userValidationLoginSchema, userChangePasswordSchema } from '../validations/user';
 import { asyncHandler } from '../utils/asyncHandler';
 import ApiResponse from '../utils/apiResponse';
 import { IUserBody, UserDocument } from '../types/IUser';
@@ -44,6 +44,38 @@ export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
   )
 
 });
+
+
+export const changePassword = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
+  const { error, value } = userChangePasswordSchema.validate(req?.body, { abortEarly: false });
+
+  if (error) {
+    throw new ApiError(400, "Validation failed.", error?.details);
+  }
+
+  const { currentPassword, newPassword, confirmPassword } = value;
+
+  const user = req.user
+
+  const existingUser = await User.findById(user?._id) as UserDocument
+
+  const isPasswordValid = await existingUser.isPasswordCorrect(currentPassword)
+
+  if (!isPasswordValid) {
+    throw new ApiError(500, "Invalid user current password.")
+  }
+
+  existingUser.password = confirmPassword;
+
+  await existingUser.save({ validateBeforeSave: false });
+
+
+  return res.status(201).json(
+    new ApiResponse(200, user, "User password change successfully.")
+  )
+
+});
+
 
 
 export const loginUser = asyncHandler(async (req, res) => {
@@ -146,14 +178,29 @@ export const logoutUser = asyncHandler(async (req: CustomRequest, res: Response,
 
 
 
-export const getUsers = async (req: Request, res: Response) => {
-  try {
-    const users = await User.find();
-    res.status(200).json(users);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+export const getUsers = asyncHandler(async (req: Request, res: Response) => {
+
+  const { search, page, limit } = req?.query
+
+  let where: any = {
+    role: 'user'
   }
-};
+
+
+  if (search) {
+    where.userName = { $regex: search ?? '', $options: 'i' }
+  }
+
+  // @ts-ignore
+  const users = await User.paginate({
+    ...where
+  }, {
+    page,
+    limit,
+  });
+
+  return res.status(200).json(new ApiResponse(200, { customerList: users }, 'customers retrieved successfully'));
+})
 
 
 export const getUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {

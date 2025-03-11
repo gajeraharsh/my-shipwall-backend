@@ -4,6 +4,7 @@ import { IBrandBody } from '../types/IBrand';
 import httpStatus from 'http-status';
 
 
+
 export const createNewBrand = async (brandBody: IBrandBody) => {
   const brandData = {
     ...brandBody,
@@ -100,6 +101,33 @@ export const deleteBrandById = async (brandId: string) => {
     return brand;
   } catch (err: any) {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error deleting brand');
+  }
+};
+
+export const fetchAllBrands = async (req: any) => {
+  try {
+    const brands = await Brand.find()
+
+    return brands;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
+  }
+};
+
+export const updateBrandOrderService = async (brands: { _id: string }[]) => {
+  try {
+    const bulkOps = brands.map((brand, index) => ({
+      updateOne: {
+        filter: { _id: brand._id },
+        update: { position: index },
+      },
+    }));
+
+    await Brand.bulkWrite(bulkOps);
+
+    return { success: true, message: "Brand order updated successfully" };
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error updating brand order");
   }
 };
 

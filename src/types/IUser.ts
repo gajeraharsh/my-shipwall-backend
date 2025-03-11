@@ -45,7 +45,8 @@ export interface IUserModal extends Document {
     gstCertificate?: string; // URL or file path
     businessAddressProof?: string; // URL or file path
   };
-  docStatus: 'Verified' | 'Pending' | 'Rejected'; // Enum for doc verification status
+  docStatus: 'Verified' | 'UnVerified'; // Enum for doc verification status
+  status: 'Verified' | 'UnVerified'; // Enum for doc verification status
   sameAsBilling: boolean; // Whether the delivery address is the same as the billing address
 }
 
@@ -70,6 +71,7 @@ export interface IUserMethods {
   isPasswordCorrect: (password: string) => Promise<boolean>;
   generateAccessToken: () => string;
   generateRefreshToken: () => string;
+  paginate: any
 }
 
 

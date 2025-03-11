@@ -6,7 +6,9 @@ import {
   getBrandByIdService,
   updateBrandById,
   deleteBrandById,
-  fetchBrandsDropdown
+  fetchBrandsDropdown,
+  fetchAllBrands,
+  updateBrandOrderService
 } from '../services/brandService';
 import { asyncHandler } from '../utils/asyncHandler';
 import ApiResponse from '../utils/apiResponse';
@@ -27,6 +29,15 @@ export const getBrands = asyncHandler(async (req: Request, res: Response) => {
   try {
     const brands = await fetchBrands(req);
     return res.status(200).json(new ApiResponse(200, { brands }, 'Brands retrieved successfully'));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || 'Could not retrieve brands');
+  }
+});
+
+export const getAllBrands = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const brands = await fetchAllBrands(req);
+    return res.status(200).json(new ApiResponse(200, { brands }, 'All brands retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve brands');
   }
@@ -74,5 +85,15 @@ export const getBrandDropdown = asyncHandler(async (req: Request, res: Response)
     return res.status(200).json(new ApiResponse(200, { options: brandsOptions }, 'Brands retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve brands');
+  }
+});
+
+
+export const updateBrandOrderController = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const updatedBrand = await updateBrandOrderService(req?.body?.brands || []);
+    return res.status(200).json(new ApiResponse(200, { updatedBrand }, 'Brand order updated successfully'));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || 'Could not update brand order');
   }
 });

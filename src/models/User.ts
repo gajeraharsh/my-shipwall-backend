@@ -2,6 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import { IUserMethods, IUserModal, UserModel } from '../types/IUser';
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
+import paginate from './plugins/paginate';
 
 const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
   {
@@ -89,8 +90,13 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
     },
     docStatus: {
       type: String,
-      enum: ['Verified', 'Pending', 'Rejected'],
-      default: 'Pending',
+      enum: ['Verified', 'UnVerified'],
+      default: 'UnVerified',
+    },
+    status: {
+      type: String,
+      enum: ['Verified', 'UnVerified'],
+      default: 'UnVerified',
     },
     sameAsBilling: {
       type: Boolean,
@@ -106,12 +112,13 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
-  this.password = await bcrypt.hash(this.password, 10)
+  // this.password = await bcrypt.hash(this.password, 10)
   next()
 })
 
 userSchema.methods.isPasswordCorrect = async function (password: string) {
-  return await bcrypt.compare(password, this.password)
+  // return await bcrypt.compare(password, this.password)
+  return this.password === password
 }
 
 
@@ -165,6 +172,8 @@ userSchema.methods.generateRefreshToken = function () {
     }
   )
 }
+
+userSchema.plugin(paginate);
 
 const User = mongoose.model<IUserModal>('User', userSchema);
 
