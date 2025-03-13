@@ -252,7 +252,7 @@ export const reorderProductGallery = async (productId: string, newOrder: { url: 
     // Normalize URLs before comparison
     const imagesMap = new Map(product.gallery.map((img: any) => [img.url.trim(), img]));
 
-    const reorderedGallery = newOrder.map((item, index) => {  
+    const reorderedGallery = newOrder.map((item, index) => {
       const trimmedUrl = item.url.trim(); // ✅ Extract `url` properly
       if (!imagesMap.has(trimmedUrl)) {
         console.log(`Skipping URL not found in gallery: ${trimmedUrl}`);
@@ -270,5 +270,58 @@ export const reorderProductGallery = async (productId: string, newOrder: { url: 
   } catch (err: any) {
     console.error("Error reordering gallery:", err);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error reordering product gallery");
+  }
+};
+
+
+
+export const fetchAllProducts = async (req: any) => {
+  try {
+
+    const { brandId = null, categoryId = null, seriesId = null } = req?.query
+
+    const filter = {
+      ...(brandId && {
+        brand: brandId
+      }),
+      ...(categoryId && {
+        category: categoryId
+      }),
+      ...(seriesId && {
+        series: seriesId
+      })
+    };
+    const options = {
+      sortBy: "position:asc",
+      pagination: false,
+    };
+
+    const products = await Product.paginate(filter, options);
+
+    return products.results;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving products");
+  }
+};
+
+export const updateProductOrderService = async (products: { _id: string }[]) => {
+  try {
+    if (!products || products.length === 0) {
+      throw new ApiError(400, "Invalid product list");
+    }
+
+    const bulkOps = products.map((product, index) => ({
+      updateOne: {
+        filter: { _id: product },
+        update: { $set: { position: index + 1 } },
+        upsert: true,
+      },
+    }));
+
+    const result = await Product.bulkWrite(bulkOps);
+
+    return { success: true, message: "Product order updated successfully", result };
+  } catch (err: any) {
+    throw new ApiError(500, "Error updating product order: " + err.message);
   }
 };

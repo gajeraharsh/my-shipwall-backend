@@ -5,7 +5,9 @@ import {
   getSeriesByIdService,
   updateSeriesById,
   deleteSeriesById,
-  fetchSeriesDropdown
+  fetchSeriesDropdown,
+  updateSeriesOrderService,
+  fetchAllSeries
 } from '../services/seriesService';
 import { asyncHandler } from '../utils/asyncHandler';
 import ApiResponse from '../utils/apiResponse';
@@ -71,6 +73,24 @@ export const getSeriesDropdown = asyncHandler(async (req: Request, res: Response
     })
 
     return res.status(200).json(new ApiResponse(200, { options }, 'Series retrieved successfully'));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || 'Could not retrieve series');
+  }
+});
+
+export const updateSeriesOrderController = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const updatedSeries = await updateSeriesOrderService(req?.body?.ids || []);
+    return res.status(200).json(new ApiResponse(200, { updatedSeries }, 'Series order updated successfully'));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || 'Could not update series order');
+  }
+});
+
+export const getAllSeries = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const series = await fetchAllSeries(req);
+    return res.status(200).json(new ApiResponse(200, { series }, 'All series retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve series');
   }

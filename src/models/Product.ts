@@ -122,6 +122,11 @@ const productSchema = new Schema<IProduct, ProductModel>({
       position: { type: Number, required: true },
     },
   ],
+  position: {
+    type: Number,
+    required: true,
+    default: 0,
+  }
 }, {
   timestamps: true,
 });

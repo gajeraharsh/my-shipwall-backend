@@ -7,7 +7,9 @@ import {
   deleteProduct,
   getProductsDropdown,
   updateProductGallery,
-  reorderGalleryImages
+  reorderGalleryImages,
+  getAllProducts,
+  updateProductOrderController
 } from "../controllers/productController";
 import validate from "../middlewares/validate";
 import {
@@ -15,6 +17,7 @@ import {
   updateProductValidation,
   getProductValidation,
   deleteProductValidation,
+  updateProducrtOrderValidation,
 } from "../validations/product";
 import { verifyJWT } from "../middlewares/auth.middleware";
 import upload from "../middlewares/upload";
@@ -46,6 +49,8 @@ router.route("/").post(verifyJWT, upload.fields([
 router.route("/").get(getProducts);
 
 router.route("/dropDown").get(getProductsDropdown);
+router.route("/all").get(getAllProducts);
+
 
 router.route("/:id").get(validate(getProductValidation), getProductById);
 
@@ -69,6 +74,8 @@ router.put("/:id", verifyJWT, upload.fields([
   }
   next();
 }, validate(updateProductValidation), updateProduct);
+router.post("/update-order", validate(updateProducrtOrderValidation), updateProductOrderController);
+
 router.delete("/:id", validate(deleteProductValidation), deleteProduct);
 
 

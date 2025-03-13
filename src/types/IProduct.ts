@@ -38,6 +38,7 @@ export interface IProduct extends Document {
   packaging?: string,
   additionalInfo?: string,
   gallery: IGalleryImage[];
+  position: number;
 }
 
 export interface IProductbody {
