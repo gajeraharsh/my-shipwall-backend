@@ -2,18 +2,6 @@ import Joi from "joi";
 
 // Support Validation Schema
 export const createSupportValidation = Joi.object({
-  complaintId: Joi.string().required().messages({
-    "any.required": "Complaint ID is required",
-    "string.empty": "Complaint ID cannot be empty",
-  }),
-  user: Joi.string().required().messages({
-    "any.required": "User is required",
-    "string.empty": "User cannot be empty",
-  }),
-  serviceRelatedReasonType: Joi.string().required().messages({
-    "any.required": "Service-related reason type is required",
-    "string.empty": "Service-related reason type cannot be empty",
-  }),
   typeOfComplaint: Joi.string()
     .valid("Service Related", "Technical Issue", "Billing Issue")
     .required()
@@ -21,14 +9,6 @@ export const createSupportValidation = Joi.object({
       "any.required": "Type of complaint is required",
       "any.only": "Invalid complaint type. Must be 'Service Related', 'Technical Issue', or 'Billing Issue'.",
     }),
-  complaintStatus: Joi.string()
-    .valid("Open", "In Progress", "Closed", "Resolved")
-    .required()
-    .messages({
-      "any.required": "Complaint status is required",
-      "any.only": "Invalid complaint status. Must be 'Open', 'In Progress', 'Closed', or 'Resolved'.",
-    }),
-  updateComplaintStatus: Joi.string().optional(),
   complaintReason: Joi.string().required().messages({
     "any.required": "Complaint reason is required",
     "string.empty": "Complaint reason cannot be empty",
@@ -45,8 +25,6 @@ export const getSupportValidation = Joi.object({
 
 // Validation for updating a support record
 export const updateSupportValidation = Joi.object({
-  complaintId: Joi.string().optional(),
-  serviceRelatedReasonType: Joi.string().optional(),
   typeOfComplaint: Joi.string()
     .valid("Service Related", "Technical Issue", "Billing Issue")
     .optional()

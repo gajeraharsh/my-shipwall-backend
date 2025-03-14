@@ -20,7 +20,8 @@ export const createNewTicket = async (req: Request) => {
 
     const ticketData = {
         ...body,
-        issueImageUrl
+        issueImageUrl,
+        user: req?.user?._id
     };
     return await Support.create(ticketData);
 };
@@ -39,12 +40,16 @@ export const fetchTickets = async (req: any) => {
         const limit = req?.query?.limit;
         const query = req?.query?.search ?? ''
 
+        const {
+            status = ''
+        } = req?.query
+
         const tickets = await Support.paginate({
-            complaintReason: { $regex: query, $options: 'i' }
+            complaintReason: { $regex: query, $options: 'i' },
+            ...(status && status)
         }, {
             page,
             limit,
-
         });
 
 

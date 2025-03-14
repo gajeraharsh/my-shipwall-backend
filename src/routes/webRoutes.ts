@@ -95,9 +95,8 @@ router.get("/cart/", verifyJWT, getCart);
 
 // Orders
 router.get("/order", verifyJWT, getOrders);
-router.get("/order/orderId", verifyJWT, getOrderbyId);
+router.get("/order/:orderId", verifyJWT, getOrderbyId);
 router.post("/order/create", verifyJWT, createOrder);
-
 
 // support
 router.route("/support").post(verifyJWT, upload.single("issueImage"), (req, res, next) => {

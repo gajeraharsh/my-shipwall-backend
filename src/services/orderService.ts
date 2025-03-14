@@ -77,7 +77,6 @@ export const fetchOrders = async (req: any) => {
         }, {
             page,
             limit,
-
         });
 
         if (!orders || orders.length === 0) {
@@ -99,8 +98,15 @@ export const getOrderByIdService = async (userId: string, orderId: string) => {
             .populate({
                 path: "products.product",
                 model: "Product",
-                select: "name price stock description images",
+                select: "productName modelNo color watt price boxQuantity",
+                populate: {
+                    path: "color", 
+                    model: "ColorMaster",
+                    select: "colorName",
+                },
             });
+
+
 
         if (!order) {
             throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
@@ -108,6 +114,7 @@ export const getOrderByIdService = async (userId: string, orderId: string) => {
 
         return order;
     } catch (err: any) {
+        console.log(err)
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving order details");
     }
 };
