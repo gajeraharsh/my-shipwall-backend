@@ -14,6 +14,8 @@ import upload from "../middlewares/upload";
 import validate from "../middlewares/validate";
 import { createSupportValidation, deleteSupportValidation, getSupportValidation, updateSupportValidation } from "../validations/supportValidation";
 import { createSupport, deleteSupport, getSupportById, getSupports, updateSupport } from "../controllers/supportController";
+import { createContactValidation } from "../validations/contactus";
+import { createContact } from "../controllers/contactusController";
 
 const router = express.Router();
 
@@ -110,6 +112,8 @@ router.put("/support/:id", verifyJWT, validate(updateSupportValidation), updateS
 router.delete("/support/:id", verifyJWT, validate(deleteSupportValidation), deleteSupport);
 
 
+// contact us
+router.route("/contact-us").post(validate(createContactValidation), createContact);
 
 
 export default router;

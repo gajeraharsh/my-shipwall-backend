@@ -14,6 +14,7 @@ import colorMasterRoutes from './routes/colorMasterRoutes';
 import hsnCodeRoutes from './routes/hsnCodeRoutes';
 import generalSettingRoutes from './routes/generalSettingRoutes';
 import supportRoutes from './routes/supportRoutes';
+import contactusRoute from './routes/contactusRoute';
 
 import webRoutes from './routes/webRoutes';
 
@@ -47,6 +48,7 @@ app.use('/api/hsn-code', hsnCodeRoutes);
 app.use('/api/color-master', colorMasterRoutes);
 app.use('/api/general-setting', generalSettingRoutes);
 app.use('/api/support', generalSettingRoutes);
+app.use('/api/contact', contactusRoute)
 app.use('/api/web', webRoutes)
 
 
