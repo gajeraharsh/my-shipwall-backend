@@ -35,29 +35,58 @@ export const createNewTicket = async (req: Request) => {
 
 export const fetchTickets = async (req: any) => {
     try {
-
-        const page = req?.query?.page;
-        const limit = req?.query?.limit;
-        const query = req?.query?.search ?? ''
+        const page = req?.query?.page || 1;
+        const limit = req?.query?.limit || 10;
+        const query = req?.query?.search ?? '';
 
         const {
-            status = ''
-        } = req?.query
+            status = '',
+            typeOfComplaint = '',
+            user = '',
+            startDate = '',
+            endDate = ''
+        } = req?.query;
 
-        const tickets = await Support.paginate({
-            complaintReason: { $regex: query, $options: 'i' },
-            ...(status && status)
-        }, {
+        // Construct the filter query
+        const filter: any = {};
+
+        if (query) {
+            filter.complaintReason = { $regex: query, $options: 'i' };
+        }
+
+        if (status) {
+            filter.complaintStatus = status;
+        }
+
+        if (typeOfComplaint) {
+            filter.typeOfComplaint = typeOfComplaint;
+        }
+
+        if (user) {
+            filter.user = user;
+        }
+
+        // Date Range Filtering (Handles only startDate, only endDate, or both)
+        if (startDate || endDate) {
+            filter.createdAt = {};
+            if (startDate) filter.createdAt.$gte = new Date(startDate);
+            if (endDate) filter.createdAt.$lte = new Date(endDate);
+        }
+
+        const tickets = await Support.paginate(filter, {
             page,
             limit,
+            sort: { createdAt: -1 },
+            populate: [
+                { path: 'user', select: '_id id' },
+            ]
         });
-
 
         return tickets;
     } catch (err: any) {
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving tickets');
     }
-}
+};
 
 
 export const getTicketByIdService = async (ticketId: string) => {

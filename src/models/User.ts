@@ -3,6 +3,7 @@ import { IUserMethods, IUserModal, UserModel } from '../types/IUser';
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import paginate from './plugins/paginate';
+import incrementId from './plugins/incrementId';
 
 const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
   {
@@ -16,7 +17,7 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
     logginId: {
       type: String,
       required: false,
-      unique: true,
+      unique: false,
     },
     email: {
       type: String,
@@ -63,7 +64,7 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
     billingAddress: {
       line1: { type: String, required: false },
       line2: { type: String },
-      pincode: { type: String, required: true },
+      pincode: { type: String, required: false },
       state: { type: String, required: false },
       city: { type: String, required: false },
       country: { type: String, required: false },
@@ -174,6 +175,8 @@ userSchema.methods.generateRefreshToken = function () {
 }
 
 userSchema.plugin(paginate);
+userSchema.plugin(incrementId, "QVAPCU");
+
 
 const User = mongoose.model<IUserModal>('User', userSchema);
 

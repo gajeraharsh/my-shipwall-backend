@@ -11,7 +11,7 @@ const userValidationSchema = Joi.object<IUserBody>({
         otherwise: Joi.optional(),
     }),
     logginId: Joi.string().when('role', {
-        is: Joi.valid('sale_admin', 'sale_member', 'admin'),
+        is: Joi.valid('admin'),
         then: Joi.required().messages({
             'string.base': 'Login ID must be a string.',
             'any.required': 'Login ID is required for sale_admin, sale_member, or admin role.',
@@ -39,20 +39,20 @@ const userValidationSchema = Joi.object<IUserBody>({
         'string.base': 'Profile image must be a string.',
     }),
     businessName: Joi.string().when('role', {
-        is: 'user',
-        then: Joi.optional(),
-        otherwise: Joi.required().messages({
+        is: Joi.valid('user'),
+        then: Joi.required().messages({
             'string.base': 'Business name must be a string.',
             'any.required': 'Business name is required for roles other than user.',
         }),
+        otherwise: Joi.optional(),
     }),
     gstNumber: Joi.string().when('role', {
-        is: 'user',
-        then: Joi.optional(),
-        otherwise: Joi.required().messages({
-            'string.base': 'GST number must be a string.',
-            'any.required': 'GST number is required for roles other than user.',
+        is: Joi.valid('user'),
+        then: Joi.required().messages({
+            'string.base': 'Gst Number must be a string.',
+            'any.required': 'Gst Number is required for roles other than user.',
         }),
+        otherwise: Joi.optional(),
     }),
     role: Joi.string().valid('admin', 'user', 'sale_admin', 'sale_member').required().messages({
         'string.base': 'Role must be a string.',

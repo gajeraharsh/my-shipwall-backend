@@ -16,6 +16,10 @@ import generalSettingRoutes from './routes/generalSettingRoutes';
 import supportRoutes from './routes/supportRoutes';
 import contactusRoute from './routes/contactusRoute';
 
+import appSettingRoutes from './routes/seller/AppSettingRoutes';
+import roleRoute from './routes/seller/RoleRoute';
+
+
 import webRoutes from './routes/webRoutes';
 
 
@@ -47,10 +51,12 @@ app.use('/api/banner', bannerRouttes);
 app.use('/api/hsn-code', hsnCodeRoutes);
 app.use('/api/color-master', colorMasterRoutes);
 app.use('/api/general-setting', generalSettingRoutes);
-app.use('/api/support', generalSettingRoutes);
+app.use('/api/support', supportRoutes);
 app.use('/api/contact', contactusRoute)
 app.use('/api/web', webRoutes)
 
+app.use("/api/seller/setting", appSettingRoutes)
+app.use("/api/seller/admin-role", roleRoute)
 
 
 const errorHandler = (
