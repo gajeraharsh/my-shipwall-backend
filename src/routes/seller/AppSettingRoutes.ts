@@ -17,7 +17,8 @@ import {
     getIncentiveByIdController,
     updateIncentiveController,
     deleteIncentiveController,
-    getStatesDropdown
+    getStatesDropdown,
+    getCitiesDropdown
 } from "../../controllers/seller/AppSettingController";
 import validate from "../../middlewares/validate";
 import {
@@ -49,7 +50,9 @@ router.delete("/state/:id", validate(deleteStateValidation), deleteStateControll
 
 router.route("/city").post(validate(createCityValidation), createCityController);
 router.route("/city").get(getCitiesController);
-router.route("/city/:id").get(validate(getCityValidation), getCityByIdController);
+router.route("/city/dropDown").get(getCitiesDropdown);
+router.route("/city/:id").get(validate(getCityValidation), getCityByIdController)
+;
 router.put("/city/:id", validate(updateCityValidation), updateCityController);
 router.delete("/city/:id", validate(deleteCityValidation), deleteCityController);
 

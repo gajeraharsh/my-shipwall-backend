@@ -84,6 +84,22 @@ export const getCityByIdController = asyncHandler(async (req: Request, res: Resp
     return res.status(200).json(new ApiResponse(200, { city }, 'City retrieved successfully'));
 });
 
+export const getCitiesDropdown = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const data = await fetchCities(req);
+        const options = data?.results?.map((item: any) => {
+            return {
+                label: item?.name,
+                value: item?._id
+            }
+        })
+        return res.status(200).json(new ApiResponse(200, { options: options }, 'Cities retrieved successfully'));
+    } catch (err: any) {
+        throw new ApiError(500, err.message || 'Could not retrieve Cities');
+    }
+});
+
+
 export const updateCityController = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const updatedCity = await updateCityById(id, req.body);

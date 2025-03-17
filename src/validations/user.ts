@@ -1,7 +1,6 @@
 import Joi from 'joi';
-import { IUserBody } from '../types/IUser';
 
-const userValidationSchema = Joi.object<IUserBody>({
+const userValidationSchema = Joi.object<any>({
     userName: Joi.string().when('role', {
         is: Joi.valid('sale_admin', 'sale_member'),
         then: Joi.required().messages({
@@ -34,6 +33,68 @@ const userValidationSchema = Joi.object<IUserBody>({
     phone: Joi.string().required().messages({
         'string.base': 'Phone number must be a string.',
         'any.required': 'Phone number is required.',
+    }),
+    altContactNumber: Joi.string().when('role', {
+        is: Joi.valid('sale_member'),
+        then: Joi.required().messages({
+            'string.base': 'Alternative number must be a string.',
+            'any.required': 'Alternative is required for sale_member role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+    gender: Joi.string().when('role', {
+        is: Joi.valid('sale_member'),
+        then: Joi.required().messages({
+            'string.base': 'gender number must be a string.',
+            'any.required': 'gender is required for sale_member role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+    lenguage: Joi.string().when('role', {
+        is: Joi.valid('sale_member'),
+        then: Joi.required().messages({
+            'string.base': 'lenguage number must be a string.',
+            'any.required': 'lenguage is required for sale_member role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+    salary: Joi.string().when('role', {
+        is: Joi.valid('sale_member'),
+        then: Joi.required().messages({
+            'string.base': 'salary number must be a string.',
+            'any.required': 'salary is required for sale_member role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+
+    note: Joi.string().when('role', {
+        is: Joi.valid('sale_member'),
+        then: Joi.required().messages({
+            'string.base': 'note number must be a string.',
+            'any.required': 'note is required for sale_member role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+    sameAsCurrent: Joi.boolean().when('role', {
+        is: Joi.valid('sale_member'),
+        then: Joi.required().messages({
+            'string.base': 'Same as current number must be a string.',
+            'any.required': 'Same as current is required for sale_member role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+    currentAddress: Joi.any().when('role', {
+        is: Joi.valid('sale_member'),
+        then: Joi.required().messages({
+            'string.base': 'currentAddress number must be a string.',
+            'any.required': 'currentAddress is required for sale_member role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+    permenentAddress: Joi.any().when('role', {
+        is: Joi.valid('sale_member'),
+        then: Joi.optional(),
+        otherwise: Joi.optional(),
     }),
     profileImage: Joi.string().optional().messages({
         'string.base': 'Profile image must be a string.',

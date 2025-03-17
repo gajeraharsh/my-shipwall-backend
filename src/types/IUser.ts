@@ -8,6 +8,11 @@ export interface IUserModal extends Document {
   logginId?: string;         // Optional logginId
   email: string;             // Email is required and unique
   phone: string;             // Phone is required and unique
+  altContactNumber: string;
+  gender: string;
+  lenguage: string;
+  salary: string;
+  note: string
   profileImage?: string;     // Optional profile image
   fullName?: string;         // Optional fullName
   businessName?: string;     // Optional business name
@@ -36,6 +41,20 @@ export interface IUserModal extends Document {
     location: string;
     landmark: string;
   };
+  currentAddress: {
+    street: string;
+    state?: string;
+    city: string;
+    country: string;
+    pinecode: string;
+  };
+  permenentAddress: {
+    street: string;
+    state?: string;
+    city: string;
+    country: string;
+    pinecode: string;
+  };
   documents: {
     profilePhoto?: string; // URL or file path
     businessFrontPremisesPhoto?: string; // URL or file path
@@ -47,7 +66,9 @@ export interface IUserModal extends Document {
   };
   docStatus: 'Verified' | 'UnVerified'; // Enum for doc verification status
   status: 'Verified' | 'UnVerified'; // Enum for doc verification status
-  sameAsBilling: boolean; // Whether the delivery address is the same as the billing address
+  sameAsBilling: boolean;
+  sameAsCurrent: boolean;
+
 }
 
 

@@ -22,16 +22,29 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
     email: {
       type: String,
       required: true,
-      unique: true, // Ensure email is unique
     },
     phone: {
       type: String,
       required: true,
-      unique: true, // Ensure phone is unique
+    },
+    altContactNumber: {
+      type: String,
+    },
+    gender: {
+      type: String
+    },
+    lenguage: {
+      type: String
+    },
+    salary: {
+      type: String
     },
     profileImage: {
       type: String,
       required: false,
+    },
+    note: {
+      type: String
     },
     businessName: {
       type: String,
@@ -52,7 +65,7 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
     role: {
       type: String,
       required: true,
-      enum: ['admin', 'user', 'sale_admin', 'sale_member'],
+      enum: ['admin', 'user', 'super_sale_admin', 'sale_admin', 'sale_member'],
     },
     password: {
       type: String,
@@ -80,6 +93,20 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       location: { type: String, required: false },
       landmark: { type: String, required: false },
     },
+    currentAddress: {
+      street: { type: String, required: false },
+      state: { type: mongoose.Types.ObjectId, ref: "State", default: null },
+      city: { type: mongoose.Types.ObjectId, ref: "City", default: null },
+      country: { type: String, required: false },
+      pinecode: { type: String, required: false },
+    },
+    permenentAddress: {
+      street: { type: String, required: false },
+      state: { type: mongoose.Types.ObjectId, ref: "State", default: null },
+      city: { type: mongoose.Types.ObjectId, ref: "City", default: null },
+      country: { type: String, required: false },
+      pinecode: { type: String, required: false },
+    },
     documents: {
       profilePhoto: { type: String },
       businessFrontPremisesPhoto: { type: String },
@@ -100,6 +127,10 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       default: 'UnVerified',
     },
     sameAsBilling: {
+      type: Boolean,
+      default: false,
+    },
+    sameAsCurrent: {
       type: Boolean,
       default: false,
     },

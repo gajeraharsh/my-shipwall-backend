@@ -18,6 +18,7 @@ import contactusRoute from './routes/contactusRoute';
 
 import appSettingRoutes from './routes/seller/AppSettingRoutes';
 import roleRoute from './routes/seller/RoleRoute';
+import saleUserRoute from './routes/seller/saleUserRoutes';
 
 
 import webRoutes from './routes/webRoutes';
@@ -57,6 +58,8 @@ app.use('/api/web', webRoutes)
 
 app.use("/api/seller/setting", appSettingRoutes)
 app.use("/api/seller/admin-role", roleRoute)
+app.use("/api/seller/sale-member", saleUserRoute)
+
 
 
 const errorHandler = (
