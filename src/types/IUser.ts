@@ -46,14 +46,14 @@ export interface IUserModal extends Document {
     state?: string;
     city: string;
     country: string;
-    pinecode: string;
+    pincode: string;
   };
   permenentAddress: {
     street: string;
     state?: string;
     city: string;
     country: string;
-    pinecode: string;
+    pincode: string;
   };
   documents: {
     profilePhoto?: string; // URL or file path
@@ -68,7 +68,9 @@ export interface IUserModal extends Document {
   status: 'Verified' | 'UnVerified'; // Enum for doc verification status
   sameAsBilling: boolean;
   sameAsCurrent: boolean;
-
+  isBlock: boolean;
+  salePerson: Types.ObjectId;
+  potential: Number;
 }
 
 

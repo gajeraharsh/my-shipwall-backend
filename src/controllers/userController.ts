@@ -180,7 +180,16 @@ export const logoutUser = asyncHandler(async (req: CustomRequest, res: Response,
 
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
 
-  const { search, page, limit } = req?.query
+  const {
+    search,
+    page,
+    limit,
+    startDate = '',
+    endDate = '',
+    days,
+    state,
+    city
+  } = req.query;
 
   let where: any = {
     role: 'user'
@@ -188,7 +197,32 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
 
 
   if (search) {
-    where.userName = { $regex: search ?? '', $options: 'i' }
+    where.userName = { $regex: search, $options: 'i' };
+    where.fullName = { $regex: search, $options: 'i' };
+    where.email = { $regex: search, $options: 'i' };
+    where.phone = { $regex: search, $options: 'i' };
+  }
+
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) where.createdAt.$gte = new Date(startDate as string);
+    if (endDate) where.createdAt.$lte = new Date(endDate as string);
+  }
+
+  if (days) {
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - Number(days));
+    where.createdAt = { $gte: daysAgo };
+  }
+
+  // Filter by state
+  if (state) {
+    where["billingAddress.state"] = state;
+  }
+
+  // Filter by city
+  if (city) {
+    where["deliveryAddress.city"] = city;
   }
 
   // @ts-ignore

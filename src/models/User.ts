@@ -98,14 +98,14 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       state: { type: mongoose.Types.ObjectId, ref: "State", default: null },
       city: { type: mongoose.Types.ObjectId, ref: "City", default: null },
       country: { type: String, required: false },
-      pinecode: { type: String, required: false },
+      pincode: { type: String, required: false },
     },
     permenentAddress: {
       street: { type: String, required: false },
       state: { type: mongoose.Types.ObjectId, ref: "State", default: null },
       city: { type: mongoose.Types.ObjectId, ref: "City", default: null },
       country: { type: String, required: false },
-      pinecode: { type: String, required: false },
+      pincode: { type: String, required: false },
     },
     documents: {
       profilePhoto: { type: String },
@@ -133,6 +133,16 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
     sameAsCurrent: {
       type: Boolean,
       default: false,
+    },
+    isBlock: {
+      type: Boolean,
+      required: true,
+      default: false
+    },
+    salePerson: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
   },
   {

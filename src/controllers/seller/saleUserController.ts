@@ -44,22 +44,56 @@ export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
 
 
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
-
-    const { search, page, limit } = req?.query
+    const {
+        search,
+        page,
+        limit,
+        startDate = '',
+        endDate = '',
+        days,
+        state,
+        city
+    } = req.query;
 
     let where: any = {
         role: 'sale_member'
-    }
+    };
 
-
+    // Search by userName (case-insensitive)
     if (search) {
-        where.userName = { $regex: search ?? '', $options: 'i' }
+        where.userName = { $regex: search, $options: 'i' };
+        where.fullName = { $regex: search, $options: 'i' };
+        where.email = { $regex: search, $options: 'i' };
+        where.phone = { $regex: search, $options: 'i' };
     }
+
+    // Filter by date range
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.$gte = new Date(startDate as string);
+        if (endDate) where.createdAt.$lte = new Date(endDate as string);
+    }
+
+    // Filter by predefined day ranges (Last 7 days, Last 30 days)
+    if (days) {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - Number(days));
+        where.createdAt = { $gte: daysAgo };
+    }
+
+    // Filter by state
+    if (state) {
+        where["currentAddress.state"] = state;
+    }
+
+    // Filter by city
+    if (city) {
+        where["currentAddress.city"] = city;
+    }
+
 
     // @ts-ignore
-    const users = await User.paginate({
-        ...where
-    }, {
+    const users = await User.paginate(where, {
         page,
         limit,
         populate: [
@@ -68,16 +102,31 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
             { path: 'permenentAddress.state', select: '_id name' },
             { path: 'permenentAddress.city', select: '_id name' },
         ],
-
     });
 
-    return res.status(200).json(new ApiResponse(200, { customerList: users }, 'customers retrieved successfully'));
-})
+    return res.status(200).json(new ApiResponse(200, { customerList: users }, 'Customers retrieved successfully'));
+});
 
 
 export const getUserById = asyncHandler(async (req: Request<any>, res: Response) => {
 
-    const user = await User.findById(req?.params.id);
+    const user = await User.findById(req?.params.id)
+        .populate({
+            path: 'currentAddress.city',
+            model: 'City'
+        })
+        .populate({
+            path: 'currentAddress.state',
+            model: 'State'
+        })
+        .populate({
+            path: 'permenentAddress.city',
+            model: 'City'
+        })
+        .populate({
+            path: 'permenentAddress.state',
+            model: 'State'
+        });
 
     return res.status(200).json(
         new ApiResponse(200, { user: user }, "User retrivied successfully")
@@ -96,143 +145,21 @@ export const updateUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
         throw new ApiError(404, "User not found");
     }
 
-    const {
-        userName,
-        fullName,
-        logginId,
-        email,
-        phone,
-        businessName,
-        businessType,
-        gstNumber,
-        role,
-        password,
-        panNumber,
-        billingAddress,
-        deliveryAddress,
-        sameAsBilling,
-    } = req.body;
-
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
     let profileImageUrl: string | null = null;
-    let businessFrontPremisesPhotoUrl: string | null = null;
-    let businessStockWithOwnerPhotoUrl: string | null = null;
-    let ownerPhotoUrl: string | null = null;
-    let visitingCardPhotoUrl: string | null = null;
-    let gstCertificateUrl: string | null = null;
-    let businessAddressProofUrl: string | null = null;
 
     // Handle file uploads
     if (files?.profileImage?.[0]) {
         profileImageUrl = await uploadFileToS3(files.profileImage[0], req.user?._id);
     }
 
-    if (files?.businessFrontPremisesPhoto?.[0]) {
-        businessFrontPremisesPhotoUrl = await uploadFileToS3(files.businessFrontPremisesPhoto[0], req.user?._id);
-    }
+    const updateData: any = {
+        ...req?.body
+    };
 
-    if (files?.businessStockWithOwnerPhoto?.[0]) {
-        businessStockWithOwnerPhotoUrl = await uploadFileToS3(files.businessStockWithOwnerPhoto[0], req.user?._id);
-    }
-
-    if (files?.ownerPhoto?.[0]) {
-        ownerPhotoUrl = await uploadFileToS3(files.ownerPhoto[0], req.user?._id);
-    }
-
-    if (files?.visitingCardPhoto?.[0]) {
-        visitingCardPhotoUrl = await uploadFileToS3(files.visitingCardPhoto[0], req.user?._id);
-    }
-
-    if (files?.gstCertificate?.[0]) {
-        gstCertificateUrl = await uploadFileToS3(files.gstCertificate[0], req.user?._id);
-    }
-
-    if (files?.businessAddressProof?.[0]) {
-        businessAddressProofUrl = await uploadFileToS3(files.businessAddressProof[0], req.user?._id);
-    }
-
-    const updateData: any = {};
-
-    if (userName) updateData.userName = userName;
-    if (fullName) updateData.fullName = fullName;
-    if (logginId) updateData.logginId = logginId;
-    if (email) updateData.email = email;
-    if (phone) updateData.phone = phone;
     if (profileImageUrl) updateData.profileImage = profileImageUrl;
-    if (businessName) updateData.businessName = businessName;
-    if (businessType) updateData.businessType = businessType;
-    if (gstNumber) updateData.gstNumber = gstNumber;
-    if (role) updateData.role = role;
-    if (password) updateData.password = password;
-    if (panNumber) updateData.panNumber = panNumber;
-    if (sameAsBilling) updateData.sameAsBilling = sameAsBilling;
 
-    if (billingAddress) updateData.billingAddress = billingAddress;
-
-    if (!updateData.documents) {
-        updateData.documents = {};
-    }
-
-    updateData.documents.businessFrontPremisesPhoto = businessFrontPremisesPhotoUrl || existingUser.documents?.businessFrontPremisesPhoto;
-    updateData.documents.businessStockWithOwnerPhoto = businessStockWithOwnerPhotoUrl || existingUser.documents?.businessStockWithOwnerPhoto;
-    updateData.documents.ownerPhoto = ownerPhotoUrl || existingUser.documents?.ownerPhoto;
-    updateData.documents.visitingCardPhoto = visitingCardPhotoUrl || existingUser.documents?.visitingCardPhoto;
-    updateData.documents.gstCertificate = gstCertificateUrl || existingUser.documents?.gstCertificate;
-    updateData.documents.businessAddressProof = businessAddressProofUrl || existingUser.documents?.businessAddressProof;
-
-
-    let parsedDeliveryAddress: any = null;
-    if (typeof deliveryAddress === "string") {
-        try {
-            parsedDeliveryAddress = JSON.parse(deliveryAddress);
-        } catch (error) {
-            throw new ApiError(400, "Invalid delivery address format");
-        }
-    } else {
-        parsedDeliveryAddress = deliveryAddress;
-    }
-
-    let parsedBillingAddress: any = null;
-    if (typeof billingAddress === "string") {
-        try {
-            parsedBillingAddress = JSON.parse(billingAddress);
-        } catch (error) {
-            throw new ApiError(400, "Invalid billing address format");
-        }
-    } else {
-        parsedBillingAddress = billingAddress;
-    }
-
-
-
-    if (parsedBillingAddress) {
-        updateData.billingAddress = {
-            line1: parsedBillingAddress.line1,
-            line2: parsedBillingAddress.line2,
-            pincode: parsedBillingAddress.pincode,
-            state: parsedBillingAddress.state,
-            city: parsedBillingAddress.city,
-            country: parsedBillingAddress.country,
-            landmark: parsedBillingAddress.landmark,
-        };
-    }
-
-    if (sameAsBilling && parsedBillingAddress) {
-        updateData.deliveryAddress = { ...updateData.billingAddress };
-    } else if (parsedDeliveryAddress) {
-        updateData.deliveryAddress = {
-            line1: parsedDeliveryAddress.line1,
-            line2: parsedDeliveryAddress.line2,
-            pincode: parsedDeliveryAddress.pincode,
-            state: parsedDeliveryAddress.state,
-            city: parsedDeliveryAddress.city,
-            country: parsedDeliveryAddress.country,
-            landmark: parsedDeliveryAddress.landmark,
-        };
-    }
-
-    console.log(updateData)
 
     const updatedUser = await User.findByIdAndUpdate(
         userId,
@@ -251,3 +178,31 @@ export const updateUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     );
 
 });
+
+
+export const deleteUserById = asyncHandler(async (req: Request<any>, res: Response) => {
+
+    try {
+        const id = req?.params.id
+
+        if (!id) {
+            throw new ApiError(400, "Id is required");
+        }
+
+        const user = await User.findByIdAndDelete(id);
+        if (!user) throw new ApiError(404, 'User not found');
+        return res.status(200).json(
+            new ApiResponse(200, user, "User deleted successfully")
+        );
+    } catch (error: any) {
+        throw new ApiError(500, error.message || 'deleteUserById  failed');
+
+    }
+
+});
+
+
+
+
+
+
