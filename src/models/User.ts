@@ -78,8 +78,8 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       line1: { type: String, required: false },
       line2: { type: String },
       pincode: { type: String, required: false },
-      state: { type: String, required: false },
-      city: { type: String, required: false },
+      state: { type: mongoose.Types.ObjectId, ref: "State", default: null },
+      city: { type: mongoose.Types.ObjectId, ref: "City", default: null },
       country: { type: String, required: false },
       landmark: { type: String, required: false },
     },
@@ -87,8 +87,8 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       line1: { type: String, required: false },
       line2: { type: String },
       pincode: { type: String, required: false },
-      state: { type: String, required: false },
-      city: { type: String, required: false },
+      state: { type: mongoose.Types.ObjectId, ref: "State", default: null },
+      city: { type: mongoose.Types.ObjectId, ref: "City", default: null },
       country: { type: String, required: false },
       location: { type: String, required: false },
       landmark: { type: String, required: false },
@@ -144,6 +144,12 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       ref: "User",
       default: null,
     },
+    potential: {
+      type: Number,
+      required: false,
+      default: 0
+    },
+
   },
   {
     timestamps: true,

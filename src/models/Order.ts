@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import paginate from "./plugins/paginate";
+import incrementId from "./plugins/incrementId";
 
 // Order Product Interface
 interface OrderProduct {
@@ -25,6 +26,7 @@ export interface IOrder extends Document {
         country: string;
         phone: string;
     };
+    deliveredAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -61,11 +63,15 @@ const OrderSchema: Schema = new Schema<IOrder>(
             country: { type: String, required: true },
             phone: { type: String, required: true },
         },
+        deliveredAt: {
+            type: Date,
+        }
     },
     { timestamps: true }
 );
 
 OrderSchema.plugin(paginate);
+OrderSchema.plugin(incrementId);
 
 
-export default mongoose.model<IOrder>("Order", OrderSchema);
+export default mongoose.model<IOrder, any>("Order", OrderSchema);
