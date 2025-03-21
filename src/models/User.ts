@@ -149,6 +149,11 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       required: false,
       default: 0
     },
+    adminRole: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      default: null,
+    }
 
   },
   {

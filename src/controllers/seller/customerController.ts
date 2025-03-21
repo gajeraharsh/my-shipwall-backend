@@ -103,6 +103,9 @@ export const getCustomers = asyncHandler(async (req: Request, res: Response) => 
             { path: 'billingAddress.city', select: '_id name' },
             { path: 'deliveryAddress.state', select: '_id name' },
             { path: 'deliveryAddress.city', select: '_id name' },
+            {
+                path: 'salePerson', select: "_id fullName"
+            }
         ],
     });
 
@@ -277,3 +280,40 @@ export const getCustomerOrders = asyncHandler(async (req: Request<IUserBody>, re
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving orders');
     }
 })
+
+
+
+export const assignSaleUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
+
+    const { userId }: any = req.params;
+    const { salePersonId }: any = req.body;
+
+    const existingUser = await User.findById(userId);
+
+    if (!existingUser) {
+        throw new ApiError(404, "User not found");
+    }
+    console.log(userId, salePersonId)
+    // Handle file uploads
+    const updateData: any = {
+        salePerson: salePersonId
+    };
+
+
+    const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: updateData },
+        { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+        throw new ApiError(500, "Something went wrong while assigning sale person");
+    }
+
+    const userWithoutSensitiveInfo = await User.findById(updatedUser._id).select("-password -refreshToken");
+
+    return res.status(200).json(
+        new ApiResponse(200, userWithoutSensitiveInfo, "Sale person assign successsfully")
+    );
+
+});

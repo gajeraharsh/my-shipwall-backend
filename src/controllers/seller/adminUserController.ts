@@ -1,14 +1,62 @@
 import { Request, Response } from 'express';
 import User from '../../models/User';
-import { userValidationSchema } from '../../validations/user';
 import { asyncHandler } from '../../utils/asyncHandler';
 import ApiResponse from '../../utils/apiResponse';
 import { IUserBody } from '../../types/IUser';
 import ApiError from '../../utils/apiError';
 import { uploadFileToS3 } from '../../services/fileUploads3Service';
+import Joi from 'joi';
+
+const userValidationSchema = Joi.object<any>({
+    userName: Joi.string().when('role', {
+        is: Joi.valid('sale_admin', 'sale_member'),
+        then: Joi.required().messages({
+            'string.base': 'Username must be a string.',
+            'any.required': 'Username is required for sale_admin or sale_member role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+    logginId: Joi.string().when('role', {
+        is: Joi.valid('admin'),
+        then: Joi.required().messages({
+            'string.base': 'Login ID must be a string.',
+            'any.required': 'Login ID is required for sale_admin, sale_member, or admin role.',
+        }),
+        otherwise: Joi.optional(),
+    }),
+    email: Joi.string().email().required().messages({
+        'string.base': 'Email must be a string.',
+        'string.email': 'Please provide a valid email address.',
+        'any.required': 'Email is required.',
+    }),
+    phone: Joi.string().required().messages({
+        'string.base': 'Phone number must be a string.',
+        'any.required': 'Phone number is required.',
+    }),
+
+    profileImage: Joi.string().optional().messages({
+        'string.base': 'Profile image must be a string.',
+    }),
+
+    role: Joi.string().valid('admin', 'user', 'sale_admin', 'sale_member').required().messages({
+        'string.base': 'Role must be a string.',
+        'any.required': 'Role is required.',
+        'any.only': 'Role must be one of "admin", "user", "sale_admin", or "sale_member".',
+    }),
+    password: Joi.string().required().messages({
+        'string.base': 'Password must be a string.',
+        'any.required': 'Password is required.',
+    }),
+    confirmPassword: Joi.string().valid(Joi.ref('password')).required().messages({
+        'string.base': 'Confirm Password must be a string.',
+        'any.required': 'Confirm Password is required.',
+        'any.only': 'Confirm Password must match the Password.',
+    }),
+    adminRole: Joi.any().required()
+});
 
 
-export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
+export const createAdminUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
     const { error, value } = userValidationSchema.validate(req?.body, { abortEarly: false });
 
     if (error) {
@@ -23,11 +71,27 @@ export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     })
 
     if (existedUser) {
-        throw new ApiError(409, "User already exist.")
+        throw new ApiError(409, "Admin user already exist.")
     }
 
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
-    const user = await User.create(value)
+    let profileImageUrl: string | null = null;
+
+    // Handle file uploads
+    if (files?.profileImage?.[0]) {
+        profileImageUrl = await uploadFileToS3(files.profileImage[0], req.user?._id);
+    }
+
+    const input: any = {
+        ...value
+    };
+
+    if (profileImageUrl) input.profileImage = profileImageUrl;
+
+
+
+    const user = await User.create(input)
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
@@ -37,13 +101,13 @@ export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     }
 
     return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered Successfully")
+        new ApiResponse(200, createdUser, "Admin user registered Successfully")
     )
 
 });
 
 
-export const getUsers = asyncHandler(async (req: Request, res: Response) => {
+export const getAdminUsers = asyncHandler(async (req: Request, res: Response) => {
     const {
         search,
         page,
@@ -56,7 +120,7 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
     } = req.query;
 
     let where: any = {
-        role: 'sale_member'
+        role: 'sale_admin'
     };
 
     // Search by userName (case-insensitive)
@@ -80,69 +144,44 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
         daysAgo.setDate(daysAgo.getDate() - Number(days));
         where.createdAt = { $gte: daysAgo };
     }
-
-    // Filter by state
-    if (state) {
-        where["currentAddress.state"] = state;
-    }
-
-    // Filter by city
-    if (city) {
-        where["currentAddress.city"] = city;
-    }
-
-
     // @ts-ignore
     const users = await User.paginate(where, {
         page,
         limit,
         populate: [
-            { path: 'currentAddress.state', select: '_id name' },
-            { path: 'currentAddress.city', select: '_id name' },
-            { path: 'permenentAddress.state', select: '_id name' },
-            { path: 'permenentAddress.city', select: '_id name' },
-        ],
+            {
+                path: "adminRole",
+                select: 'name _id'
+            }
+        ]
     });
 
-    return res.status(200).json(new ApiResponse(200, { customerList: users }, 'Customers retrieved successfully'));
+    return res.status(200).json(new ApiResponse(200, { customerList: users }, 'Admin users retrieved successfully'));
 });
 
 
-export const getUserById = asyncHandler(async (req: Request<any>, res: Response) => {
+export const getAdminUserById = asyncHandler(async (req: Request<any>, res: Response) => {
 
-    const user = await User.findById(req?.params.id)
-        .populate({
-            path: 'currentAddress.city',
-            model: 'City'
-        })
-        .populate({
-            path: 'currentAddress.state',
-            model: 'State'
-        })
-        .populate({
-            path: 'permenentAddress.city',
-            model: 'City'
-        })
-        .populate({
-            path: 'permenentAddress.state',
-            model: 'State'
-        });
+    const user = await User.findById(req?.params.id).populate({
+        path: "adminRole",
+        select: 'name _id'
+    })
 
     return res.status(200).json(
-        new ApiResponse(200, { user: user }, "User retrivied successfully")
+        new ApiResponse(200, { user: user }, "Admin user retrivied successfully")
     )
 });
 
 
 
-export const updateUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
+export const updateAdminUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
 
     const { userId }: any = req.params;
 
     const existingUser = await User.findById(userId);
 
     if (!existingUser) {
-        throw new ApiError(404, "User not found");
+        throw new ApiError(404, "Admin user not found");
     }
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
@@ -168,19 +207,19 @@ export const updateUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     );
 
     if (!updatedUser) {
-        throw new ApiError(500, "Something went wrong while updating the user");
+        throw new ApiError(500, "Something went wrong while updating the admin user");
     }
 
     const userWithoutSensitiveInfo = await User.findById(updatedUser._id).select("-password -refreshToken");
 
     return res.status(200).json(
-        new ApiResponse(200, userWithoutSensitiveInfo, "User updated successfully")
+        new ApiResponse(200, userWithoutSensitiveInfo, "Admin user updated successfully")
     );
 
 });
 
 
-export const deleteUserById = asyncHandler(async (req: Request<any>, res: Response) => {
+export const deleteAdminUserById = asyncHandler(async (req: Request<any>, res: Response) => {
 
     try {
         const id = req?.params.id
@@ -192,17 +231,17 @@ export const deleteUserById = asyncHandler(async (req: Request<any>, res: Respon
         const user = await User.findByIdAndDelete(id);
         if (!user) throw new ApiError(404, 'User not found');
         return res.status(200).json(
-            new ApiResponse(200, user, "User deleted successfully")
+            new ApiResponse(200, user, "Admin user deleted successfully")
         );
     } catch (error: any) {
-        throw new ApiError(500, error.message || 'deleteUserById  failed');
+        throw new ApiError(500, error.message || 'deleteAdminUserById  failed');
 
     }
 
 });
 
 
-export const getSaleUserDropdown = asyncHandler(async (req: Request, res: Response) => {
+export const getAdminUsersDropdown = asyncHandler(async (req: Request, res: Response) => {
     const {
         search,
         page,
@@ -215,7 +254,7 @@ export const getSaleUserDropdown = asyncHandler(async (req: Request, res: Respon
     } = req.query;
 
     let where: any = {
-        role: 'sale_member'
+        role: 'sale_admin'
     };
 
     // Search by userName (case-insensitive)
@@ -240,27 +279,11 @@ export const getSaleUserDropdown = asyncHandler(async (req: Request, res: Respon
         where.createdAt = { $gte: daysAgo };
     }
 
-    // Filter by state
-    if (state) {
-        where["currentAddress.state"] = state;
-    }
-
-    // Filter by city
-    if (city) {
-        where["currentAddress.city"] = city;
-    }
-
-
     // @ts-ignore
     const data = await User.paginate(where, {
         page,
         limit,
-        populate: [
-            { path: 'currentAddress.state', select: '_id name' },
-            { path: 'currentAddress.city', select: '_id name' },
-            { path: 'permenentAddress.state', select: '_id name' },
-            { path: 'permenentAddress.city', select: '_id name' },
-        ],
+
     });
 
     const options = data?.results?.map((item: any) => {
@@ -269,6 +292,6 @@ export const getSaleUserDropdown = asyncHandler(async (req: Request, res: Respon
             value: item?._id
         }
     })
-    return res.status(200).json(new ApiResponse(200, { options: options }, 'Sale user dropdown retrieved successfully'));
+    return res.status(200).json(new ApiResponse(200, { options: options }, 'Admin users dropdown retrieved successfully'));
 
 });

@@ -5,7 +5,8 @@ import {
     getRoleByIdController,
     updateRoleController,
     deleteRoleController,
-    updateRolePermissionController
+    updateRolePermissionController,
+    getRolesDropdown
 } from "../../controllers/seller/RoleController";
 
 import validate from "../../middlewares/validate";
@@ -21,6 +22,8 @@ const router = express.Router();
 
 router.route("/role").post(validate(createRoleValidation), createRoleController);
 router.route("/role").get(getRolesController);
+router.route("/dropdown").get(getRolesDropdown);
+
 router.route("/role/:id").get(validate(getRoleValidation), getRoleByIdController);
 router.put("/role/:id", validate(updateRoleValidation), updateRoleController);
 router.put("/role/:id/permissions", validate(updateRolePermissionSchema), updateRolePermissionController);

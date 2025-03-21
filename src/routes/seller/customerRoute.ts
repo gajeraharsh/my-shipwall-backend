@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+    assignSaleUser,
     createCustomer,
     deleteCustomerById,
     getCustomerById,
@@ -28,6 +29,7 @@ router.route("/:userId").put(verifyJWT, upload.fields([
     }
     next();
 }, updateCustomer);
+router.route('/assign-sale-perssosn/:userId').put(verifyJWT, assignSaleUser)
 
 router.route('/:id').delete(verifyJWT, deleteCustomerById)
 

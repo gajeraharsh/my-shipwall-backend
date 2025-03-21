@@ -104,3 +104,29 @@ export const updatePermission = async (roleId: string, pageId: string, permissio
     await role.save();
     return role;
 };
+
+
+export const fetchRoleDropdown = async (req: any) => {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    try {
+        const roles = await RoleModel.paginate({
+            name: { $regex: search, $options: 'i' }
+        }, {
+            page,
+            limit,
+            // populate: 'permissions.page',
+        });
+
+        const options = roles?.results?.map((item: any) => {
+            return {
+                label: item?.name,
+                value: item?._id
+            }
+        })
+
+
+        return options;
+    } catch (err) {
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving roles');
+    }
+};

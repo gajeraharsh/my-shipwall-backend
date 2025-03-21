@@ -71,6 +71,7 @@ export interface IUserModal extends Document {
   isBlock: boolean;
   salePerson: Types.ObjectId;
   potential: Number;
+  adminRole: Types.ObjectId
 }
 
 

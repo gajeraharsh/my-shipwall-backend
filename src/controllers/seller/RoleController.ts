@@ -9,7 +9,8 @@ import {
     updateRoleById,
     deleteRoleById,
     getRoleWithPermissions,
-    updatePermission
+    updatePermission,
+    fetchRoleDropdown
 } from '../../services/Seller/RoleService';
 
 // Create Role
@@ -59,3 +60,13 @@ export const updateRolePermissionController = asyncHandler(async (req: Request, 
     res.status(200).json(new ApiResponse(200, updatedRole, "Permission updated successfully"));
 });
 
+
+export const getRolesDropdown = asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const data = await fetchRoleDropdown(req);
+
+        return res.status(200).json(new ApiResponse(200, { options: data }, 'Roles retrieved successfully'));
+    } catch (err: any) {
+        throw new ApiError(500, err.message || 'Could not retrieve Roles');
+    }
+});
