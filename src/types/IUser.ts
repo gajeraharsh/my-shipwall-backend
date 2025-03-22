@@ -1,4 +1,5 @@
 // /server/models/IUser.ts
+import { bool } from 'aws-sdk/clients/signer';
 import { Types } from 'mongoose';
 import { Document, Model } from 'mongoose';
 
@@ -18,6 +19,7 @@ export interface IUserModal extends Document {
   businessName?: string;     // Optional business name
   gstNumber?: string;        // Optional GST number
   role: 'admin' | 'user' | 'sale_admin' | 'sale_member';  // Enum for role
+  isSuperSaleAdmin: boolean;
   password: string;          // Password is required
   refreshToken: string;      // Refresh token for authentication
   businessType?: string;     // Optional business type

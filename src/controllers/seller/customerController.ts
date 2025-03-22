@@ -48,69 +48,93 @@ export const createCustomer = asyncHandler(async (req: Request<IUserBody>, res: 
 export const getCustomers = asyncHandler(async (req: Request, res: Response) => {
     const {
         search,
-        page,
-        limit,
+        page = 1,
+        limit = 10,
         startDate = '',
         endDate = '',
         days,
         state,
-        city
-    } = req.query;
+        city,
+        isCustomerPool = false,
+        salePerson
+    }: any = req.query;
 
-    let where: any = {
-        role: 'user'
-    };
+    const andConditions: any[] = [{ role: 'user' }];
 
-    // Search by userName (case-insensitive)
+    // Search across multiple fields
     if (search) {
-        where.userName = { $regex: search, $options: 'i' };
-        where.fullName = { $regex: search, $options: 'i' };
-        where.email = { $regex: search, $options: 'i' };
-        where.phone = { $regex: search, $options: 'i' };
+        const searchOrConditions = [
+            { userName: { $regex: search, $options: 'i' } },
+            { fullName: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+            { phone: { $regex: search, $options: 'i' } }
+        ];
+        andConditions.push({ $or: searchOrConditions });
     }
 
-    // Filter by date range
+    // isCustomerPool = true => user has no salePerson
+    if (isCustomerPool === 'true' || isCustomerPool === true) {
+        const noSalePersonConditions = [
+            { salePerson: null },
+            { salePerson: { $exists: false } }
+        ];
+        andConditions.push({ $or: noSalePersonConditions });
+    }
+
+    // Date range filter
     if (startDate || endDate) {
-        where.createdAt = {};
-        if (startDate) where.createdAt.$gte = new Date(startDate as string);
-        if (endDate) where.createdAt.$lte = new Date(endDate as string);
+        const createdAt: any = {};
+        if (startDate) createdAt.$gte = new Date(startDate as string);
+        if (endDate) createdAt.$lte = new Date(endDate as string);
+        andConditions.push({ createdAt });
     }
 
-    // Filter by predefined day ranges (Last 7 days, Last 30 days)
+    // Filter by "last X days"
     if (days) {
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - Number(days));
-        where.createdAt = { $gte: daysAgo };
+        andConditions.push({ createdAt: { $gte: daysAgo } });
     }
 
-    // Filter by state
+    if (salePerson) {
+        andConditions.push({
+            salePerson: salePerson
+        })
+    }
+
+    // State filter
     if (state) {
-        where["currentAddress.state"] = state;
+        andConditions.push({ 'currentAddress.state': state });
     }
 
-    // Filter by city
+    // City filter
     if (city) {
-        where["currentAddress.city"] = city;
+        andConditions.push({ 'currentAddress.city': city });
     }
 
+    // Final query object
+    const where = andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
+
+    console.log('Query Filters:', JSON.stringify(where, null, 2));
 
     // @ts-ignore
     const users = await User.paginate(where, {
-        page,
-        limit,
+        page: Number(page),
+        limit: Number(limit),
         populate: [
             { path: 'billingAddress.state', select: '_id name' },
             { path: 'billingAddress.city', select: '_id name' },
             { path: 'deliveryAddress.state', select: '_id name' },
             { path: 'deliveryAddress.city', select: '_id name' },
-            {
-                path: 'salePerson', select: "_id fullName"
-            }
+            { path: 'salePerson', select: '_id fullName' }
         ],
     });
 
-    return res.status(200).json(new ApiResponse(200, { customerList: users }, 'Customers retrieved successfully'));
+    return res.status(200).json(
+        new ApiResponse(200, { customerList: users }, 'Customers retrieved successfully')
+    );
 });
+
 
 
 export const getCustomerById = asyncHandler(async (req: Request<any>, res: Response) => {

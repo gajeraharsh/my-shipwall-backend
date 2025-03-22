@@ -94,9 +94,9 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   const query: any[] = [];
 
-  if (userName) query.push({ userName });
-  if (phone) query.push({ phone });
-  if (logginId) query.push({ logginId });
+  if (userName) query.push({ userName, role });
+  if (phone) query.push({ phone, role });
+  if (logginId) query.push({ logginId, role });
 
 
   const user = await User.findOne({
@@ -182,55 +182,73 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
 
   const {
     search,
-    page,
-    limit,
+    page = 1,
+    limit = 10,
     startDate = '',
     endDate = '',
     days,
     state,
-    city
+    city,
+    salePerson
   } = req.query;
 
-  let where: any = {
-    role: 'user'
-  }
+  const andConditions: any[] = [{ role: 'user' }];
 
-
+  // Search across multiple fields
   if (search) {
-    where.userName = { $regex: search, $options: 'i' };
-    where.fullName = { $regex: search, $options: 'i' };
-    where.email = { $regex: search, $options: 'i' };
-    where.phone = { $regex: search, $options: 'i' };
+    const searchOrConditions = [
+      { userName: { $regex: search, $options: 'i' } },
+      { fullName: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+      { phone: { $regex: search, $options: 'i' } }
+    ];
+    andConditions.push({ $or: searchOrConditions });
   }
 
+  // isCustomerPool = true => user has no salePerson
+
+  // Date range filter
   if (startDate || endDate) {
-    where.createdAt = {};
-    if (startDate) where.createdAt.$gte = new Date(startDate as string);
-    if (endDate) where.createdAt.$lte = new Date(endDate as string);
+    const createdAt: any = {};
+    if (startDate) createdAt.$gte = new Date(startDate as string);
+    if (endDate) createdAt.$lte = new Date(endDate as string);
+    andConditions.push({ createdAt });
   }
 
+  // Filter by "last X days"
   if (days) {
     const daysAgo = new Date();
     daysAgo.setDate(daysAgo.getDate() - Number(days));
-    where.createdAt = { $gte: daysAgo };
+    andConditions.push({ createdAt: { $gte: daysAgo } });
   }
 
-  // Filter by state
+  if (salePerson) {
+    andConditions.push({
+      salePerson: salePerson
+    })
+  }
+
+  // State filter
   if (state) {
-    where["billingAddress.state"] = state;
+    andConditions.push({ 'currentAddress.state': state });
   }
 
-  // Filter by city
+  // City filter
   if (city) {
-    where["deliveryAddress.city"] = city;
+    andConditions.push({ 'currentAddress.city': city });
   }
+
+  // Final query object
+  const where = andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
 
   // @ts-ignore
-  const users = await User.paginate({
-    ...where
-  }, {
+  const users = await User.paginate(where, {
     page,
     limit,
+    populate: [
+      { path: 'billingAddress.state', select: '_id name' },
+      { path: 'billingAddress.city', select: '_id name' },],
+
   });
 
   return res.status(200).json(new ApiResponse(200, { customerList: users }, 'customers retrieved successfully'));
@@ -409,4 +427,79 @@ export const updateUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     new ApiResponse(200, userWithoutSensitiveInfo, "User updated successfully")
   );
 
+});
+
+
+
+export const deleteUserById = asyncHandler(async (req: Request<any>, res: Response) => {
+
+  try {
+    const id = req?.params.id
+
+    if (!id) {
+      throw new ApiError(400, "Id is required");
+    }
+
+    const user = await User.findByIdAndDelete(id);
+    if (!user) throw new ApiError(404, 'User not found');
+    return res.status(200).json(
+      new ApiResponse(200, user, "User deleted successfully")
+    );
+  } catch (error: any) {
+    throw new ApiError(500, error.message || 'deleteUserById  failed');
+
+  }
+
+});
+
+
+export const getCustomerById = asyncHandler(async (req: Request<any>, res: Response) => {
+  const user: any = await User.findById(req?.params.id)
+    .populate({
+      path: 'billingAddress.city',
+      model: 'City'
+    })
+    .populate({
+      path: 'billingAddress.state',
+      model: 'State'
+    })
+    .populate({
+      path: 'deliveryAddress.city',
+      model: 'City'
+    })
+    .populate({
+      path: 'deliveryAddress.state',
+      model: 'State'
+    })
+    .populate({
+      path: 'currentAddress.city',
+      model: 'City'
+    })
+    .populate({
+      path: 'currentAddress.state',
+      model: 'State'
+    })
+    .populate({
+      path: 'permenentAddress.city',
+      model: 'City'
+    })
+    .populate({
+      path: 'permenentAddress.state',
+      model: 'State'
+    })
+    .populate({
+      path: "salePerson",
+      select: 'fullName _id',
+      model: 'User'
+    })
+
+
+  if (!user) {
+    return res.status(404).json(new ApiResponse(404, {}, "User not found"));
+  }
+
+
+  return res.status(200).json(
+    new ApiResponse(200, { user: user }, "User retrieved successfully")
+  );
 });

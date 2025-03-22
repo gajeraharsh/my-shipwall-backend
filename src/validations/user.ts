@@ -129,6 +129,9 @@ const userValidationSchema = Joi.object<any>({
         'any.required': 'Confirm Password is required.',
         'any.only': 'Confirm Password must match the Password.',
     }),
+    potential: Joi.any(),
+    salePerson: Joi.any(),
+    billingAddress: Joi.any()
 });
 
 

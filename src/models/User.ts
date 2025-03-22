@@ -67,6 +67,10 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       required: true,
       enum: ['admin', 'user', 'super_sale_admin', 'sale_admin', 'sale_member'],
     },
+    isSuperSaleAdmin: {
+      type: Boolean,
+      default: false
+    },
     password: {
       type: String,
       required: true,

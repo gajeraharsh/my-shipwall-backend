@@ -1,19 +1,23 @@
 import express from 'express';
-import { changePassword, createUser, getUser, getUsers, loginUser, logoutUser, updateUser, } from '../controllers/userController';
+import { changePassword, createUser, deleteUserById, getCustomerById, getUser, getUsers, loginUser, logoutUser, updateUser, } from '../controllers/userController';
 import { authorizeRoles, verifyJWT } from '../middlewares/auth.middleware';
 import upload from '../middlewares/upload';
+import { getUserById } from '../controllers/seller/saleUserController';
 
 const router = express.Router();
 
 
 router.route("/").get(verifyJWT, getUsers);
+router.route('/user').get(verifyJWT, getUser)
+router.route('/:id').get(verifyJWT, getCustomerById)
+
+
 router.route("/create").post(createUser);
 router.route("/login").post(loginUser);
 router.route("/logout").post(verifyJWT, logoutUser);
 
 
 router.route("/change-password").post(verifyJWT, changePassword);
-router.route('/user').get(verifyJWT, getUser)
 
 router.route("/:userId").put(verifyJWT, upload.fields([
     { name: 'profileImage', maxCount: 1 },
@@ -49,6 +53,7 @@ router.route("/:userId").put(verifyJWT, upload.fields([
     }
     next();
 }, updateUser);
+router.route('/:id').delete(verifyJWT, deleteUserById)
 
 
 
