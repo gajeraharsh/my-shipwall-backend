@@ -21,6 +21,7 @@ import roleRoute from './routes/seller/RoleRoute';
 import saleUserRoute from './routes/seller/saleUserRoutes';
 import customerRoute from './routes/seller/customerRoute';
 import adminUserRotue from './routes/seller/AdminUserRotue';
+import storeVisitRotues from './routes/storeVisitRotues';
 
 
 
@@ -64,6 +65,7 @@ app.use("/api/seller/admin-role", roleRoute)
 app.use("/api/seller/sale-member", saleUserRoute)
 app.use("/api/seller/admin-users", adminUserRotue)
 app.use("/api/seller/customers", customerRoute)
+app.use("/api/seller/store-visit", storeVisitRotues)
 
 
 

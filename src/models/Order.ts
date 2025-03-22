@@ -32,7 +32,7 @@ export interface IOrder extends Document {
 }
 
 // Order Schema
-const OrderSchema: Schema = new Schema<IOrder>(
+const OrderSchema: Schema = new Schema<any>(
     {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         orderId: { type: Number, required: true, unique: true },
@@ -47,13 +47,13 @@ const OrderSchema: Schema = new Schema<IOrder>(
         finalTotal: { type: Number, required: true },
         orderStatus: {
             type: String,
-            enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
-            default: "Pending",
+            enum: ["draft", "initiated", "packing", "dispatch", "delevered", "delivered"],
+            default: "draft",
         },
         paymentStatus: {
             type: String,
-            enum: ["Pending", "Paid", "Failed", "Refunded"],
-            default: "Pending",
+            enum: ["Awaiting Payment", "Paid", "Failed", "Refunded"],
+            default: "Awaiting Payment",
         },
         shippingDetails: {
             address: { type: String, required: true },
@@ -71,7 +71,8 @@ const OrderSchema: Schema = new Schema<IOrder>(
 );
 
 OrderSchema.plugin(paginate);
-OrderSchema.plugin(incrementId);
+OrderSchema.plugin(incrementId, "QVAPOR");
+
 
 
 export default mongoose.model<IOrder, any>("Order", OrderSchema);

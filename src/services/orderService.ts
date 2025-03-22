@@ -90,22 +90,156 @@ export const fetchOrders = async (req: any) => {
     }
 }
 
+import mongoose from "mongoose";
+import moment from "moment";
+import Order from "../models/order.model";
+
+export const fetchOrdersBySalePerson = async (req: any) => {
+    const { page = 1, limit = 10, search = '', startDate, endDate, orderStatus, salePersonId } = req.query;
+
+    const matchStage: any = {
+        "userInfo.salePerson": new mongoose.Types.ObjectId(salePersonId),
+    };
+
+    // Filter by orderStatus or search query
+    if (orderStatus) {
+        matchStage.orderStatus = orderStatus;
+    } else if (search) {
+        matchStage.orderStatus = { $regex: search, $options: 'i' };
+    }
+
+    // Filter by date range
+    if (startDate || endDate) {
+        matchStage.createdAt = {};
+        if (startDate) matchStage.createdAt.$gte = new Date(startDate as string);
+        if (endDate) matchStage.createdAt.$lte = new Date(endDate as string);
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const pipeline = [
+        {
+            $lookup: {
+                from: "users",
+                localField: "user",
+                foreignField: "_id",
+                as: "userInfo"
+            }
+        },
+        { $unwind: "$userInfo" },
+
+        // Join with City model (assuming billing address structure is userInfo.billingAddress.city)
+        {
+            $lookup: {
+                from: "cities",
+                localField: "userInfo.billingAddress.city",
+                foreignField: "_id",
+                as: "userInfo.billingAddress.city"
+            }
+        },
+        {
+            $unwind: {
+                path: "$userInfo.billingAddress.city",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $lookup: {
+                from: "states",
+                localField: "userInfo.billingAddress.state",
+                foreignField: "_id",
+                as: "userInfo.billingAddress.state"
+            }
+        },
+        {
+            $unwind: {
+                path: "$userInfo.billingAddress.state",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+
+        { $match: matchStage },
+
+        {
+            $project: {
+                _id: 1,
+                id: 1,
+                orderId: 1,
+                products: 1,
+                finalTotal: 1,
+                orderStatus: 1,
+                paymentStatus: 1,
+                shippingDetails: 1,
+                deliveredAt: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                user: "$userInfo"
+            }
+        },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: Number(limit) }
+    ];
+
+    const orders = await Order.aggregate(pipeline);
+
+    // Total count pipeline
+    const totalPipeline = [...pipeline];
+
+    // Remove skip, limit, and project for count
+    const countPipeline = totalPipeline.filter(stage => {
+        return !('$skip' in stage || '$limit' in stage || '$project' in stage || '$sort' in stage);
+    });
+
+    countPipeline.push({ $count: "total" });
+
+    const totalResult = await Order.aggregate(countPipeline);
+    const totalDocs = totalResult[0]?.total || 0;
+
+    return {
+        docs: orders,
+        totalDocs,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(totalDocs / limit)
+    };
+};
 
 
-export const getOrderByIdService = async (userId: string, orderId: string) => {
+export const getOrderByIdService = async (orderId: string) => {
     try {
-        const order = await Order.findOne({ user: userId, _id: orderId })
+        const order = await Order.findOne({ _id: orderId })
             .populate({
                 path: "products.product",
                 model: "Product",
                 select: "productName modelNo color watt price boxQuantity",
                 populate: {
-                    path: "color", 
+                    path: "color",
                     model: "ColorMaster",
                     select: "colorName",
                 },
-            });
+            }).populate({
+                path: "user",
+                select: "fullName email phone billingAddress id _id businessName phone email gstNumber",
+                populate: [
+                    {
+                        path: "billingAddress.city",
+                        model: "City", // Replace with your actual city model name
+                        select: "name",
+                    },
+                    {
+                        path: "billingAddress.state",
+                        model: "State", // Replace with your actual state model name
+                        select: "name",
+                    },
+                    {
+                        path: "salePerson",
+                        model: "User", // Replace with your actual state model name
+                        select: "fullName",
+                    },
 
+                ],
+            });
 
 
         if (!order) {

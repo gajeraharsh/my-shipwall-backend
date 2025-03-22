@@ -256,8 +256,30 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
 
 
 export const getUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
+
+  const user: any = await User.findById(req.user._id)
+    .populate({
+      path: 'billingAddress.city',
+      model: 'City'
+    })
+    .populate({
+      path: 'billingAddress.state',
+      model: 'State'
+    })
+    .populate({
+      path: 'deliveryAddress.city',
+      model: 'City'
+    })
+    .populate({
+      path: 'deliveryAddress.state',
+      model: 'State'
+    });
+
+  if (!user) {
+    return res.status(404).json(new ApiResponse(404, {}, "User not found"));
+  }
   return res.status(200).json(
-    new ApiResponse(200, { user: req.user }, "User retrivied successfully")
+    new ApiResponse(200, { user: user }, "User retrivied successfully")
   )
 });
 

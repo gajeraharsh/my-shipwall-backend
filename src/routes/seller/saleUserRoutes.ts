@@ -9,12 +9,15 @@ import {
 } from '../../controllers/seller/saleUserController';
 import { verifyJWT } from '../../middlewares/auth.middleware';
 import upload from '../../middlewares/upload';
+import { getOrderbyId, getOrderBySalePerson } from '../../controllers/orderController';
 
 const router = express.Router();
 
 router.route("/").post(createUser);
 router.route("/").get(verifyJWT, getUsers);
 router.route("/dropdown").get(verifyJWT, getSaleUserDropdown);
+router.route('/orders').get(verifyJWT, getOrderBySalePerson)
+router.route('/orders/:orderId').get(verifyJWT, getOrderbyId)
 router.route('/:id').get(verifyJWT, getUserById)
 
 router.route("/:userId").put(verifyJWT, upload.fields([
@@ -29,8 +32,6 @@ router.route("/:userId").put(verifyJWT, upload.fields([
 }, updateUser);
 
 router.route('/:id').delete(verifyJWT, deleteUserById)
-
-
 
 
 export default router;
