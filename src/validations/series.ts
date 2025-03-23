@@ -78,4 +78,9 @@ const getSeriesValidation = Joi.object({
   }),
 });
 
-export { createSeriesValidation, updateSeriesValidation, deleteSeriesValidation, getSeriesValidation };
+const updateSeriesOrderValidation = Joi.object({
+  ids: Joi.array().required(),
+});
+
+
+export { createSeriesValidation, updateSeriesValidation, deleteSeriesValidation, getSeriesValidation, updateSeriesOrderValidation };

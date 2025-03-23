@@ -5,7 +5,9 @@ import {
   getCategoryByIdService,
   updateCategoryIdById,
   deleteCategoryIdById,
-  fetchCategoriesDropdown
+  fetchCategoriesDropdown,
+  fetchAllCategories,
+  updateCategoryOrderService
 } from '../services/categoryService';
 import { asyncHandler } from '../utils/asyncHandler';
 import ApiResponse from '../utils/apiResponse';
@@ -75,3 +77,23 @@ export const getCategoryDropdown = asyncHandler(async (req: Request, res: Respon
     throw new ApiError(500, err.message || 'Could not retrieve categories');
   }
 });
+
+
+export const getAllCategories = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const categories = await fetchAllCategories(req);
+    return res.status(200).json(new ApiResponse(200, { categories }, 'All categories retrieved successfully'));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || 'Could not retrieve categories');
+  }
+});
+
+export const updateCategoryOrderController = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const updatedCategory = await updateCategoryOrderService(req?.body?.ids || []);
+    return res.status(200).json(new ApiResponse(200, { updatedCategory }, 'Category order updated successfully'));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || 'Could not update categories order');
+  }
+});
+

@@ -77,4 +77,9 @@ const getCategoryValidation = Joi.object({
   }),
 });
 
-export { createCategoryValidation, updateCategoryValidation, deleteCategoryValidation, getCategoryValidation };
+const updateCategoryOrderValidation = Joi.object({
+  ids: Joi.array().required(),
+});
+
+
+export { createCategoryValidation, updateCategoryValidation, deleteCategoryValidation, getCategoryValidation, updateCategoryOrderValidation };

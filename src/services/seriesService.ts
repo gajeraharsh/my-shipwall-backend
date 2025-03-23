@@ -38,7 +38,7 @@ export const fetchSeries = async (req: Request) => {
 
     // @ts-ignore
     const series = await Series.paginate({
-      seriesName: { $regex: query, $options: 'i' }
+      seriesName: { $regex: query ?? '', $options: 'i' }
     }, {
       page,
       limit,
@@ -59,7 +59,9 @@ export const fetchSeries = async (req: Request) => {
 
     return series;
   } catch (err: any) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving brands');
+    console.log(err);
+
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving series');
   }
 }
 
@@ -142,3 +144,50 @@ export const deleteSeriesById = async (seriesId: string) => {
   }
 };
 
+
+export const fetchAllSeries = async (req: any) => {
+  try {
+    const { brandId = null, categoryId = null } = req?.query
+
+    const filter = {
+      ...(brandId && {
+        brand: brandId
+      }),
+      ...(categoryId && {
+        category: categoryId
+      })
+    };
+    const options = {
+      sortBy: 'position:asc',
+      pagination: false,
+    };
+
+    const series = await Series.paginate(filter, options);
+
+    return series.results; // Return only the results array
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving series');
+  }
+};
+
+export const updateSeriesOrderService = async (seriesList: { _id: string }[]) => {
+  try {
+    if (!seriesList || seriesList.length === 0) {
+      throw new ApiError(400, "Invalid series list");
+    }
+
+    const bulkOps = seriesList.map((series, index) => ({
+      updateOne: {
+        filter: { _id: series },
+        update: { $set: { position: index + 1 } }, // Change the value slightly
+        upsert: true, // Ensures update happens even if no change detected
+      },
+    }));
+
+    const result = await Series.bulkWrite(bulkOps);
+
+    return { success: true, message: "Series order updated successfully", result };
+  } catch (err: any) {
+    throw new ApiError(500, "Error updating series order: " + err.message);
+  }
+};

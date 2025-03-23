@@ -11,6 +11,7 @@ export interface ISeries extends Document {
   thumbImage: string;
   thumbImageUrl?: string
   status?: string;
+  position: number;
 }
 
 export interface ISeriesbody {

@@ -5,7 +5,11 @@ import {
   getProductByIdService,
   updateProductById,
   deleteProductById,
-  fetchProductDropdown
+  fetchProductDropdown,
+  updateProductGalleryById,
+  reorderProductGallery,
+  fetchAllProducts,
+  updateProductOrderService
 } from '../services/productsService';
 import { asyncHandler } from '../utils/asyncHandler';
 import ApiResponse from '../utils/apiResponse';
@@ -67,5 +71,56 @@ export const getProductsDropdown = asyncHandler(async (req: Request, res: Respon
     return res.status(200).json(new ApiResponse(200, { products }, 'Products retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve products');
+  }
+});
+
+
+/**
+ * Controller to upload images to the product gallery
+ */
+export const updateProductGallery = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updatedProduct = await updateProductGalleryById(id, req);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { updatedProduct }, "Product gallery updated successfully"));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || "Could not update product gallery");
+  }
+});
+
+/**
+ * Controller to reorder images in the product gallery
+ */
+export const reorderGalleryImages = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { newOrder } = req.body; // Expecting an array of image URLs in desired order
+    const updatedProduct = await reorderProductGallery(id, newOrder);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { updatedProduct }, "Gallery images reordered successfully"));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || "Could not reorder gallery images");
+  }
+});
+
+
+export const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const products = await fetchAllProducts(req);
+    return res.status(200).json(new ApiResponse(200, { products }, "All products retrieved successfully"));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || "Could not retrieve products");
+  }
+});
+
+export const updateProductOrderController = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const updatedProduct = await updateProductOrderService(req?.body?.ids || []);
+    return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product order updated successfully"));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || "Could not update product order");
   }
 });

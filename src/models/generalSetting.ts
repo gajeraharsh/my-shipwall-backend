@@ -5,6 +5,9 @@ import paginate from './plugins/paginate';
 const generalSettingSchema = new Schema<IGeneralSettingcode, GeneralsettingModal>({
     generalshippingcost: {
         type: Number,
+    },
+    returnDays: {
+        type: Number
     }
 }, {
     timestamps: true,

@@ -5,7 +5,9 @@ import {
   getSeriesById,
   updateSeries,
   deleteSeries,
-  getSeriesDropdown
+  getSeriesDropdown,
+  getAllSeries,
+  updateSeriesOrderController
 } from "../controllers/seriesController";
 import validate from "../middlewares/validate";
 import {
@@ -13,6 +15,7 @@ import {
   updateSeriesValidation,
   getSeriesValidation,
   deleteSeriesValidation,
+  updateSeriesOrderValidation,
 } from "../validations/series";
 import { verifyJWT } from "../middlewares/auth.middleware";
 import upload from "../middlewares/upload";
@@ -29,6 +32,8 @@ router.route("/").post(verifyJWT, upload.single("thumbImage"), (req, res, next) 
 router.route("/").get(getSeries);
 
 router.route("/dropDown").get(getSeriesDropdown);
+router.route("/all").get(getAllSeries);
+
 
 router.route("/:id").get(validate(getSeriesValidation), getSeriesById);
 
@@ -38,6 +43,8 @@ router.put("/:id", verifyJWT, upload.single("thumbImage"), (req, res, next) => {
   }
   next();
 }, validate(updateSeriesValidation), updateSeries);
+router.post("/update-order", validate(updateSeriesOrderValidation), updateSeriesOrderController);
+
 router.delete("/:id", validate(deleteSeriesValidation), deleteSeries);
 
 export default router;
