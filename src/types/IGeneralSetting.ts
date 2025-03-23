@@ -2,11 +2,13 @@ import { Types, Document, Model } from "mongoose";
 
 export interface IGeneralSettingcode extends Document {
     _id: Types.ObjectId;
-    generalshippingcost: number
+    generalshippingcost: number;
+    returnDays: number
 }
 
 export interface IGeneralSettingBody {
-    generalshippingcost: number
+    generalshippingcost: number,
+    returnDays: number
 }
 
 export interface IGeneralSettingsrMethods {

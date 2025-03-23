@@ -6,6 +6,8 @@ import ApiResponse from '../../utils/apiResponse';
 import { IUserBody } from '../../types/IUser';
 import ApiError from '../../utils/apiError';
 import { uploadFileToS3 } from '../../services/fileUploads3Service';
+import Order from '../../models/Order';
+import mongoose from 'mongoose';
 
 
 export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
@@ -133,6 +135,94 @@ export const getUserById = asyncHandler(async (req: Request<any>, res: Response)
     )
 });
 
+
+export const getSaleUserDetailsById = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req?.params?.id;
+
+    // 1. Fetch User with address details
+    const user = await User.findById(userId)
+        .populate({
+            path: 'currentAddress.city',
+            model: 'City'
+        })
+        .populate({
+            path: 'currentAddress.state',
+            model: 'State'
+        })
+        .populate({
+            path: 'permenentAddress.city',
+            model: 'City'
+        })
+        .populate({
+            path: 'permenentAddress.state',
+            model: 'State'
+        });
+
+    if (!user) {
+        return res.status(404).json(new ApiResponse(404, {}, "User not found"));
+    }
+
+    const totalCustomers = await User.countDocuments({ salePerson: userId });
+
+    // 3. Find users (customers) assigned to this salesperson
+    const totalOrders = await Order.aggregate([
+        {
+            $lookup: {
+                from: "users", // collection name in lowercase & plural
+                localField: "user",
+                foreignField: "_id",
+                as: "userDetails"
+            }
+        },
+        { $unwind: "$userDetails" },
+        {
+            $match: {
+                "userDetails.salePerson": new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $count: "totalOrders"
+        }
+    ]);
+
+
+    // 5. Count pending orders (not delivered) for these customers
+    const pendingOrdersResult = await Order.aggregate([
+        {
+            $lookup: {
+                from: "users",
+                localField: "user",
+                foreignField: "_id",
+                as: "userDetails"
+            }
+        },
+        { $unwind: "$userDetails" },
+        {
+            $match: {
+                "userDetails.salePerson": new mongoose.Types.ObjectId(userId),
+                orderStatus: { $ne: "delivered" } // or use $nin if there are multiple statuses to exclude
+            }
+        },
+        {
+            $count: "pendingOrders"
+        }
+    ]);
+
+    const pendingOrderCount = pendingOrdersResult[0]?.pendingOrders || 0;
+    const totalOrderCount = totalOrders[0]?.totalOrders || 0;
+
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            user,
+            stats: {
+                totalCustomers,
+                totalOrders: totalOrderCount,
+                pendingOrders: pendingOrderCount,
+            }
+        }, "User retrieved successfully")
+    );
+});
 
 
 export const updateUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {

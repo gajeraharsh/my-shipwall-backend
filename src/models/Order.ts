@@ -2,12 +2,27 @@ import mongoose, { Schema, Document } from "mongoose";
 import paginate from "./plugins/paginate";
 import incrementId from "./plugins/incrementId";
 
+interface HSNTx {
+    amount: number;
+    percent: number;
+    hsnCode: string;
+    taxableValue: string;
+    totalTaxAmount: number;
+}
+
 // Order Product Interface
 interface OrderProduct {
     product: mongoose.Schema.Types.ObjectId;
     quantity: number;
     price: number;
     subtotal: number;
+    boxQuantity: number;
+    boxPrice: number;
+    taxAmount: number;
+    subTotalIncTax: number;
+    taxPercent: number;
+    hsnTx: HSNTx
+
 }
 
 // Order Document Interface
@@ -40,10 +55,25 @@ const OrderSchema: Schema = new Schema<any>(
             {
                 product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
                 quantity: { type: Number, required: true, min: 1 },
+                boxQuantity: { type: Number, required: true },
+                boxPrice: { type: Number, required: true },
                 price: { type: Number, required: true },
                 subtotal: { type: Number, required: true },
+                taxAmount: { type: Number, required: true },
+                taxPercent: { type: Number, required: true },
+                hsnTx: {
+                    amount: { type: Number, required: false },
+                    percent: { type: Number, required: false },
+                    hsnCode: { type: String, required: false },
+                    taxableValue: { type: String, required: false },
+                    totalTaxAmount: { type: Number, required: false },
+                }
             },
         ],
+        subtotal: { type: Number, required: true, default: 0 },
+        subTotalIncTax: { type: Number, required: true, default: 0 },
+        shippingFee: { type: Number, required: true, default: 0 },
+        taxAmount: { type: Number, required: true, default: 0 },
         finalTotal: { type: Number, required: true },
         orderStatus: {
             type: String,
@@ -72,6 +102,8 @@ const OrderSchema: Schema = new Schema<any>(
 
 OrderSchema.plugin(paginate);
 OrderSchema.plugin(incrementId, "QVAPOR");
+OrderSchema.plugin(incrementId);
+
 
 
 

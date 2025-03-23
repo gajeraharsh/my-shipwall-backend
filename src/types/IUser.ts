@@ -68,12 +68,15 @@ export interface IUserModal extends Document {
   };
   docStatus: 'Verified' | 'UnVerified'; // Enum for doc verification status
   status: 'Verified' | 'UnVerified'; // Enum for doc verification status
+  sap_customer_code?: any,
   sameAsBilling: boolean;
   sameAsCurrent: boolean;
   isBlock: boolean;
   salePerson: Types.ObjectId;
   potential: Number;
-  adminRole: Types.ObjectId
+  adminRole: Types.ObjectId;
+  salePersonDocument: any;
+  salePersonDocType: any;
 }
 
 

@@ -4,16 +4,19 @@ import { PageModel } from '../models/Role'
 const connection = mongoose.connect('mongodb+srv://shipwall:shipwall@cluster0.sy4tt.mongodb.net');
 // Define default pages
 const pages = [
-    { pageGroup: "Dashboard", pageName: "Home", pageLink: "/dashboard" },
-    { pageGroup: "Users", pageName: "User Management", pageLink: "/users" },
-    { pageGroup: "Roles", pageName: "Role Management", pageLink: "/roles" },
-    { pageGroup: "Products", pageName: "Product List", pageLink: "/products" },
-    { pageGroup: "Orders", pageName: "Order Management", pageLink: "/orders" },
-    { pageGroup: "Settings", pageName: "General Settings", pageLink: "/settings" },
-    { pageGroup: "Settings", pageName: "Payment Settings", pageLink: "/settings/payment" },
-    { pageGroup: "Reports", pageName: "Sales     Report", pageLink: "/reports/sales" },
-    { pageGroup: "Reports", pageName: "Customer Report", pageLink: "/reports/customers" },
-    { pageGroup: "Marketing", pageName: "Promotions", pageLink: "/marketing/promotions" },
+    { pageGroup: "Dashboard", pageName: "Dashboard	", pageLink: "/Dashboard" },
+    { pageGroup: "Customers", pageName: "View Customer", pageLink: "/customers" },
+    { pageGroup: "Customers Pool", pageName: "Customers Pool", pageLink: "/customers-pool" },
+    { pageGroup: "Sales", pageName: "View Sales Request", pageLink: "/sales/view-sales-request" },
+    { pageGroup: "Sales", pageName: "Create Sales User", pageLink: "/sales/create-sales-user" },
+    { pageGroup: "Sales", pageName: "View Sales Users", pageLink: "/sales/view-sales-user" },
+    { pageGroup: "Admin Settings", pageName: "Page Group", pageLink: "/admin-settings/create-roles" },
+    { pageGroup: "Admin Settings", pageName: "Create Admin User", pageLink: "/admin-settings/create-admin-user" },
+    { pageGroup: "Admin Settings", pageName: "View Admin User", pageLink: "/admin-settings/view-admin-user" },
+    { pageGroup: "App Settings", pageName: "State Master", pageLink: "/app-settings/state-master" },
+    { pageGroup: "App Settings", pageName: "City Master", pageLink: "/app-settings/city-master" },
+    { pageGroup: "App Settings", pageName: "Common Incentive Settings	", pageLink: "/app-settings/common-inceptive-settings" },
+
 ];
 
 // Insert pages into the database

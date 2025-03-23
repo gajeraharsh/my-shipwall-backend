@@ -7,6 +7,7 @@ import { IUserBody, UserDocument } from '../types/IUser';
 import ApiError from '../utils/apiError';
 import { generateAccessAndRefereshTokens } from '../handlers/user';
 import { uploadFileToS3 } from '../services/fileUploads3Service';
+import mongoose from 'mongoose';
 
 
 export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
@@ -18,11 +19,17 @@ export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     throw new ApiError(400, "Validation failed.", error?.details);
   }
 
+  const { phone, userName, logginId, role } = value
+
+  const query: any[] = [];
+
+  if (userName) query.push({ userName, role });
+  if (phone) query.push({ phone, role });
+  if (logginId) query.push({ logginId, role });
+
+
   const existedUser = await User.findOne({
-    userName: req?.body?.userName,
-    phone: req?.body?.phone,
-    role: req?.body?.role,
-    logginId: req?.body?.logginId
+    $or: query
   })
 
   if (existedUser) {
@@ -107,12 +114,16 @@ export const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User does not exist")
   }
 
+  console.log(query, 'query')
+
 
   const isPasswordValid = await user.isPasswordCorrect(password)
 
   if (!isPasswordValid) {
     throw new ApiError(500, "Invalid user credentials")
   }
+
+
 
   const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user._id)
 
@@ -254,6 +265,110 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
   return res.status(200).json(new ApiResponse(200, { customerList: users }, 'customers retrieved successfully'));
 })
 
+export const getUsersV2 = asyncHandler(async (req: Request, res: Response) => {
+  const {
+    search,
+    page = 1,
+    limit = 10,
+    startDate = '',
+    endDate = '',
+    days,
+    state,
+    city,
+    salePerson
+  } = req.query;
+
+  const matchStage: any = {
+    role: 'user',
+  };
+
+  // Search filter
+  if (search) {
+    matchStage.$or = [
+      { userName: { $regex: search, $options: 'i' } },
+      { fullName: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+      { phone: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  // CreatedAt date filter
+  if (startDate || endDate) {
+    matchStage.createdAt = {};
+    if (startDate) matchStage.createdAt.$gte = new Date(startDate as string);
+    if (endDate) matchStage.createdAt.$lte = new Date(endDate as string);
+  }
+
+  // "Last X days" filter
+  if (days) {
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - Number(days));
+    matchStage.createdAt = { ...(matchStage.createdAt || {}), $gte: daysAgo };
+  }
+
+  if (salePerson) {
+    // @ts-ignore
+    matchStage.salePerson = new mongoose.Types.ObjectId(salePerson);
+  }
+
+  if (state) {
+    matchStage['currentAddress.state'] = state;
+  }
+
+  if (city) {
+    matchStage['currentAddress.city'] = city;
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+
+  console.log(matchStage)
+
+  const usersWithOrders = await User.aggregate([
+    { $match: matchStage },
+
+    // Join orders
+    {
+      $lookup: {
+        from: 'orders',
+        localField: '_id',
+        foreignField: 'user',
+        as: 'orders'
+      }
+    },
+
+    // Calculate totalSpent and orderCount
+    {
+      $addFields: {
+        totalSpent: { $sum: '$orders.finalTotal' },
+        orderCount: { $size: '$orders' }
+      }
+    },
+
+    // Optional: populate billingAddress.state and billingAddress.city (needs $lookup if needed)
+
+    // Sort by creation (or customize as needed)
+    { $sort: { createdAt: -1 } },
+
+    // Pagination
+    { $skip: skip },
+    { $limit: Number(limit) }
+  ]);
+
+  // Count total for pagination
+  const totalCount = await User.countDocuments(matchStage);
+
+  return res.status(200).json(new ApiResponse(200, {
+    customerList: {
+      docs: usersWithOrders,
+      page: Number(page),
+      limit: Number(limit),
+      totalDocs: totalCount,
+      totalPages: Math.ceil(totalCount / Number(limit)),
+    }
+  }, 'customers retrieved successfully'));
+});
+
+
 
 export const getUser = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
 
@@ -273,7 +388,17 @@ export const getUser = asyncHandler(async (req: Request<IUserBody>, res: Respons
     .populate({
       path: 'deliveryAddress.state',
       model: 'State'
-    });
+    })
+    .populate({
+      path: 'adminRole',
+      select: 'name  permissions',
+      populate: {
+        path: 'permissions.page', // Assuming the reference to Page is in `permissions.page`
+        select: 'pageGroup pageName pageLink' // You can adjust the fields you want to select from the Page model
+      }
+    
+    })
+
 
   if (!user) {
     return res.status(404).json(new ApiResponse(404, {}, "User not found"));
@@ -524,4 +649,46 @@ export const getCustomerById = asyncHandler(async (req: Request<any>, res: Respo
   return res.status(200).json(
     new ApiResponse(200, { user: user }, "User retrieved successfully")
   );
+});
+
+
+export const updateVerification = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
+
+  const { userId }: any = req.params;
+
+  const existingUser = await User.findById(userId);
+
+  if (!existingUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const {
+    status,
+    docStatus,
+    sap_customer_code
+  } = req.body;
+
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        status,
+        docStatus,
+        sap_customer_code
+      }
+    },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedUser) {
+    throw new ApiError(500, "Something went wrong while updating the user");
+  }
+
+  const userWithoutSensitiveInfo = await User.findById(updatedUser._id).select("-password -refreshToken");
+
+  return res.status(200).json(
+    new ApiResponse(200, userWithoutSensitiveInfo, "User updated successfully")
+  );
+
 });

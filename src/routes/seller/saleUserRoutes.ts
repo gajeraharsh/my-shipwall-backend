@@ -5,7 +5,8 @@ import {
     getUserById,
     getUsers,
     updateUser,
-    getSaleUserDropdown
+    getSaleUserDropdown,
+    getSaleUserDetailsById
 } from '../../controllers/seller/saleUserController';
 import { verifyJWT } from '../../middlewares/auth.middleware';
 import upload from '../../middlewares/upload';
@@ -19,6 +20,8 @@ router.route("/dropdown").get(verifyJWT, getSaleUserDropdown);
 router.route('/orders').get(verifyJWT, getOrderBySalePerson)
 router.route('/orders/:orderId').get(verifyJWT, getOrderbyId)
 router.route('/:id').get(verifyJWT, getUserById)
+router.route('/details/:id').get(verifyJWT, getSaleUserDetailsById)
+
 
 router.route("/:userId").put(verifyJWT, upload.fields([
     { name: 'profileImage', maxCount: 1 },

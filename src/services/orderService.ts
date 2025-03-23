@@ -28,10 +28,19 @@ export const createOrderService = async (userId: string) => {
         products: cart.products.map((item) => ({
             product: item.product._id,
             quantity: item.quantity,
+            boxQuantity: item.boxQuantity,
+            boxPrice: item?.boxPrice,
             price: item.price,
             subtotal: item.subtotal,
+            taxAmount: item?.taxAmount,
+            taxPercent: item?.taxPercent,
+            hsnTx: item?.hsnTx
         })),
         finalTotal: cart.totalAmount,
+        subtotal: cart.subtotal,
+        shippingFee: cart.shippingFee,
+        taxAmount: cart.taxAmount,
+        subTotalIncTax: cart?.subTotalIncTax,
         shippingDetails: {
             address: "User Address",
             city: "User City",
@@ -40,8 +49,8 @@ export const createOrderService = async (userId: string) => {
             country: "User Country",
             phone: "User Phone",
         },
-        orderStatus: "Pending",
-        paymentStatus: "Pending",
+        orderStatus: "draft",
+        paymentStatus: "Awaiting Payment",
     });
 
     await newOrder.save();
@@ -167,12 +176,17 @@ export const fetchOrdersBySalePerson = async (req: any) => {
                 orderId: 1,
                 products: 1,
                 finalTotal: 1,
+                subtotal: 1,
+                subTotalIncTax: 1,
+                shippingFee: 1,
+                taxAmount: 1,
                 orderStatus: 1,
                 paymentStatus: 1,
                 shippingDetails: 1,
                 deliveredAt: 1,
                 createdAt: 1,
                 updatedAt: 1,
+                hsnTx: 1,
                 user: "$userInfo"
             }
         },
@@ -220,7 +234,7 @@ export const getOrderByIdService = async (orderId: string) => {
                 },
             }).populate({
                 path: "user",
-                select: "fullName email phone billingAddress id _id businessName phone email gstNumber",
+                select: "fullName email phone billingAddress deliveryAddress id _id businessName phone email gstNumber",
                 populate: [
                     {
                         path: "billingAddress.city",
@@ -236,6 +250,16 @@ export const getOrderByIdService = async (orderId: string) => {
                         path: "salePerson",
                         model: "User", // Replace with your actual state model name
                         select: "fullName",
+                    },
+                    {
+                        path: "deliveryAddress.city",
+                        model: "City", // Replace with your actual city model name
+                        select: "name",
+                    },
+                    {
+                        path: "deliveryAddress.state",
+                        model: "State", // Replace with your actual state model name
+                        select: "name",
                     },
 
                 ],

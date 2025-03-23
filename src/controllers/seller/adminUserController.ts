@@ -120,7 +120,8 @@ export const getAdminUsers = asyncHandler(async (req: Request, res: Response) =>
     } = req.query;
 
     let where: any = {
-        role: 'sale_admin'
+        role: 'sale_admin',
+        isSuperSaleAdmin: { $ne: true }  
     };
 
     // Search by userName (case-insensitive)

@@ -130,6 +130,9 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       enum: ['Verified', 'UnVerified'],
       default: 'UnVerified',
     },
+    sap_customer_code: {
+      type: String
+    },
     sameAsBilling: {
       type: Boolean,
       default: false,
@@ -147,6 +150,12 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
+    },
+    salePersonDocument: {
+      type: String,
+    },
+    salePersonDocType: {
+      type: String,
     },
     potential: {
       type: Number,

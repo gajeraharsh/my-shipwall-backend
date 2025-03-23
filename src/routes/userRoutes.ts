@@ -1,5 +1,5 @@
 import express from 'express';
-import { changePassword, createUser, deleteUserById, getCustomerById, getUser, getUsers, loginUser, logoutUser, updateUser, } from '../controllers/userController';
+import { changePassword, createUser, deleteUserById, getCustomerById, getUser, getUsers, getUsersV2, loginUser, logoutUser, updateUser, updateVerification, } from '../controllers/userController';
 import { authorizeRoles, verifyJWT } from '../middlewares/auth.middleware';
 import upload from '../middlewares/upload';
 import { getUserById } from '../controllers/seller/saleUserController';
@@ -8,6 +8,7 @@ const router = express.Router();
 
 
 router.route("/").get(verifyJWT, getUsers);
+router.route("/v2").get(verifyJWT, getUsersV2);
 router.route('/user').get(verifyJWT, getUser)
 router.route('/:id').get(verifyJWT, getCustomerById)
 
@@ -53,6 +54,8 @@ router.route("/:userId").put(verifyJWT, upload.fields([
     }
     next();
 }, updateUser);
+router.route('/verification/:userId').put(verifyJWT, authorizeRoles("admin"), updateVerification)
+
 router.route('/:id').delete(verifyJWT, deleteUserById)
 
 
