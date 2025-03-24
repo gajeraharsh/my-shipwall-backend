@@ -4,6 +4,9 @@ import Cart from "../models/Cart";
 import Product from "../models/Product";
 import ApiError from "../utils/apiError";
 import httpStatus from 'http-status';
+import mongoose from "mongoose";
+import moment from "moment";
+
 
 export const createOrderService = async (userId: string) => {
     const cart = await Cart.findOne({ user: userId }).populate("products.product");
@@ -66,6 +69,8 @@ export const createOrderService = async (userId: string) => {
     cart.totalAmount = 0;
     cart.subtotal = 0;
     cart.shippingFee = 0;
+    cart.subTotalIncTax = 0;
+    cart.taxAmount = 0
     await cart.save();
 
     return newOrder;
@@ -99,9 +104,7 @@ export const fetchOrders = async (req: any) => {
     }
 }
 
-import mongoose from "mongoose";
-import moment from "moment";
-import Order from "../models/order.model";
+
 
 export const fetchOrdersBySalePerson = async (req: any) => {
     const { page = 1, limit = 10, search = '', startDate, endDate, orderStatus, salePersonId } = req.query;

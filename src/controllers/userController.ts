@@ -396,7 +396,7 @@ export const getUser = asyncHandler(async (req: Request<IUserBody>, res: Respons
         path: 'permissions.page', // Assuming the reference to Page is in `permissions.page`
         select: 'pageGroup pageName pageLink' // You can adjust the fields you want to select from the Page model
       }
-    
+
     })
 
 
@@ -486,7 +486,7 @@ export const updateUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
   if (profileImageUrl) updateData.profileImage = profileImageUrl;
   if (businessName) updateData.businessName = businessName;
   if (businessType) updateData.businessType = businessType;
-  if (gstNumber) updateData.gstNumber = gstNumber;
+  updateData.gstNumber = gstNumber;
   if (role) updateData.role = role;
   if (password) updateData.password = password;
   if (panNumber) updateData.panNumber = panNumber;
@@ -556,7 +556,6 @@ export const updateUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     };
   }
 
-  console.log(updateData)
 
   const updatedUser = await User.findByIdAndUpdate(
     userId,

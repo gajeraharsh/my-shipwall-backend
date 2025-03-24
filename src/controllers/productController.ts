@@ -124,3 +124,15 @@ export const updateProductOrderController = asyncHandler(async (req: Request, re
     throw new ApiError(500, err.message || "Could not update product order");
   }
 });
+
+
+export const getWebAllProducts = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const products = await fetchProduct(req, {
+      status: "Published"
+    });
+    return res.status(200).json(new ApiResponse(200, { products }, 'Products retrieved successfully'));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || 'Could not retrieve products');
+  }
+});

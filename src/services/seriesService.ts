@@ -30,7 +30,7 @@ export const createNewSeries = async (req: Request) => {
 */
 
 
-export const fetchSeries = async (req: Request) => {
+export const fetchSeries = async (req: Request, filter: any = {}) => {
   try {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
@@ -38,7 +38,8 @@ export const fetchSeries = async (req: Request) => {
 
     // @ts-ignore
     const series = await Series.paginate({
-      seriesName: { $regex: query ?? '', $options: 'i' }
+      seriesName: { $regex: query ?? '', $options: 'i' },
+      ...filter
     }, {
       page,
       limit,
@@ -191,3 +192,76 @@ export const updateSeriesOrderService = async (seriesList: { _id: string }[]) =>
     throw new ApiError(500, "Error updating series order: " + err.message);
   }
 };
+
+
+
+/**
+ * Upload images to the product gallery
+ */
+export const updateSeriesGalleryById = async (seriesId: string, req: Request) => {
+  try {
+    const files = req.files as Express.Multer.File[] | undefined;
+    let uploadedImages: { url: string; position: number }[] = [];
+
+    const product = await Series.findById(seriesId);
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Series not found");
+
+    const existingImages = product.gallery || [];
+    let newPosition = existingImages.length; // Append new images at the end
+
+    if (files && files.length > 0) {
+      const uploadedUrls = await Promise.all(
+        files.map((file) => uploadFileToS3(file, req.user?._id))
+      );
+
+      uploadedImages = uploadedUrls.map((url, index) => ({
+        url,
+        position: newPosition + index, // Maintain position
+      }));
+    }
+
+    product.gallery.push(...uploadedImages);
+    await product.save();
+
+    return product;
+  } catch (err: any) {
+    console.log(err);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error updating Series gallery");
+  }
+};
+
+/**
+ * Reorder gallery images based on user input
+ */
+export const reorderSeriesGallery = async (seriesId: string, newOrder: { url: string }[]) => {
+  try {
+    const product = await Series.findById(seriesId);
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Series not found");
+
+    console.log("New order:", newOrder);
+    console.log("Existing gallery:", product.gallery);
+
+    // Normalize URLs before comparison
+    const imagesMap = new Map(product.gallery.map((img: any) => [img.url.trim(), img]));
+
+    const reorderedGallery = newOrder.map((item, index) => {
+      const trimmedUrl = item.url.trim(); // ✅ Extract `url` properly
+      if (!imagesMap.has(trimmedUrl)) {
+        console.log(`Skipping URL not found in gallery: ${trimmedUrl}`);
+        return null; // Mark for removal
+      }
+      return { url: trimmedUrl, position: index };
+    }).filter(Boolean); // Remove null entries
+
+    console.log("Reordered gallery:", reorderedGallery);
+
+    product.gallery = reorderedGallery;
+    await product.save();
+
+    return product;
+  } catch (err: any) {
+    console.error("Error reordering gallery:", err);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error reordering Series gallery");
+  }
+};
+

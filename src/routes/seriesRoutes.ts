@@ -7,7 +7,9 @@ import {
   deleteSeries,
   getSeriesDropdown,
   getAllSeries,
-  updateSeriesOrderController
+  updateSeriesOrderController,
+  updateSeriesGallery,
+  reorderGalleryImages
 } from "../controllers/seriesController";
 import validate from "../middlewares/validate";
 import {
@@ -44,6 +46,12 @@ router.put("/:id", verifyJWT, upload.single("thumbImage"), (req, res, next) => {
   next();
 }, validate(updateSeriesValidation), updateSeries);
 router.post("/update-order", validate(updateSeriesOrderValidation), updateSeriesOrderController);
+
+// Route to upload new images to the gallery
+router.post("/update-gallery/:id", upload.array("images", 10), updateSeriesGallery);
+
+// Route to reorder images
+router.put("/reorder-gallery/:id", reorderGalleryImages);
 
 router.delete("/:id", validate(deleteSeriesValidation), deleteSeries);
 
