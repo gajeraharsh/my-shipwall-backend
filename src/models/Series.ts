@@ -46,7 +46,14 @@ const seriesSchema = new Schema<ISeries, SeriesModel>({
     type: Number,
     required: true,
     default: 0,
-  }
+  },
+  gallery: [
+    {
+      url: { type: String, required: true },
+      position: { type: Number, required: true },
+    },
+  ],
+
 }, {
   timestamps: true,
 });

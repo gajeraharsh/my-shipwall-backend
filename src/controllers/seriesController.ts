@@ -7,7 +7,9 @@ import {
   deleteSeriesById,
   fetchSeriesDropdown,
   updateSeriesOrderService,
-  fetchAllSeries
+  fetchAllSeries,
+  updateSeriesGalleryById,
+  reorderSeriesGallery
 } from '../services/seriesService';
 import { asyncHandler } from '../utils/asyncHandler';
 import ApiResponse from '../utils/apiResponse';
@@ -93,5 +95,52 @@ export const getAllSeries = asyncHandler(async (req: Request, res: Response) => 
     return res.status(200).json(new ApiResponse(200, { series }, 'All series retrieved successfully'));
   } catch (err: any) {
     throw new ApiError(500, err.message || 'Could not retrieve series');
+  }
+});
+
+
+
+// Web series
+
+export const getWebSeries = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const seriesList = await fetchSeries(req, {
+      status: "Published"
+    });
+    return res.status(200).json(new ApiResponse(200, { seriesList }, 'Series retrieved successfully'));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || 'Could not retrieve series');
+  }
+});
+
+
+/**
+ * Controller to upload images to the product gallery
+ */
+export const updateSeriesGallery = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updatedSeries = await updateSeriesGalleryById(id, req);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { updatedSeries }, "Series gallery updated successfully"));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || "Could not update Series gallery");
+  }
+});
+
+/**
+ * Controller to reorder images in the product gallery
+ */
+export const reorderGalleryImages = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { newOrder } = req.body; // Expecting an array of image URLs in desired order
+    const updatedSeries = await reorderSeriesGallery(id, newOrder);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { updatedSeries }, "Gallery images reordered successfully"));
+  } catch (err: any) {
+    throw new ApiError(500, err.message || "Could not reorder gallery images");
   }
 });

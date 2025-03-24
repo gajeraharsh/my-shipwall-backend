@@ -49,7 +49,7 @@ export const createNewProduct = async (req: Request) => {
 */
 
 
-export const fetchProduct = async (req: Request) => {
+export const fetchProduct = async (req: Request, filter: any = {}) => {
   try {
     //   const product = await Product.paginate({}, {});
 
@@ -64,7 +64,9 @@ export const fetchProduct = async (req: Request) => {
       categoryId = null
     } = req?.query;
 
-    let where: any = {}
+    let where: any = {
+      ...filter
+    }
 
     if (featureProduct) {
       where['featureProduct'] = featureProduct

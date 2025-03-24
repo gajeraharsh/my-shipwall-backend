@@ -1,9 +1,9 @@
 import express from "express";
 import { authorizeRoles, verifyJWT } from "../middlewares/auth.middleware";
 import { getBanners } from "../controllers/bannerController";
-import { getProductById, getProducts } from "../controllers/productController";
+import { getProductById, getProducts, getWebAllProducts } from "../controllers/productController";
 import { createUser, getUser, loginUser, logoutUser, updateUser } from "../controllers/userController";
-import { getSeries } from "../controllers/seriesController";
+import { getSeries, getWebSeries } from "../controllers/seriesController";
 import { getCategories } from "../controllers/categoryController";
 import { getProductsByCategory } from "../controllers/Web/seariestController";
 import { addToCart, getCart, removeFromCart } from "../controllers/cartController";
@@ -72,7 +72,7 @@ router.route("/banners").get(getBanners);
 router.route("/brand").get(getBrands)
 
 // series
-router.route("/series").get(getSeries);
+router.route("/series").get(getWebSeries);
 router.route("/get-product-list").get(getProductsByCategory);
 
 
@@ -83,7 +83,7 @@ router.route("/categoryBybrand").get(getCategoriesByBrand);
 
 
 //Proudcts
-router.route("/products").get(getProducts);
+router.route("/products").get(getWebAllProducts);
 router.route("/products-details/:id").get(getProductById);
 
 
