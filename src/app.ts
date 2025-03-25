@@ -15,6 +15,8 @@ import hsnCodeRoutes from './routes/hsnCodeRoutes';
 import generalSettingRoutes from './routes/generalSettingRoutes';
 import supportRoutes from './routes/supportRoutes';
 import contactusRoute from './routes/contactusRoute';
+import rejectionOrderRoutes from './routes/rejectionOrderRoutes';
+
 
 import appSettingRoutes from './routes/seller/AppSettingRoutes';
 import roleRoute from './routes/seller/RoleRoute';
@@ -58,6 +60,7 @@ app.use('/api/color-master', colorMasterRoutes);
 app.use('/api/general-setting', generalSettingRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/contact', contactusRoute)
+app.use('/api/rejection-order', rejectionOrderRoutes)
 app.use('/api/web', webRoutes)
 
 app.use("/api/seller/setting", appSettingRoutes)

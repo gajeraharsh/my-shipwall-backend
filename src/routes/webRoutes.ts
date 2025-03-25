@@ -7,7 +7,18 @@ import { getSeries, getWebSeries } from "../controllers/seriesController";
 import { getCategories } from "../controllers/categoryController";
 import { getProductsByCategory } from "../controllers/Web/seariestController";
 import { addToCart, getCart, removeFromCart } from "../controllers/cartController";
+import {
+    addToCartRjection,
+    getCartRjection,
+    removeFromCartRjection
+} from "../controllers/rjectionCartController";
 import { createOrder, getOrderbyId, getOrders } from "../controllers/orderController";
+import {
+    createRejectionOrder,
+    getRejectionOrderbyId,
+    getRejectionOrders
+} from "../controllers/orderRejectionController";
+
 import { getBrands } from "../controllers/brandController";
 import { getCategoriesByBrand } from "../controllers/Web/categoriesController";
 import upload from "../middlewares/upload";
@@ -92,11 +103,30 @@ router.post("/cart/add", verifyJWT, addToCart);
 router.delete("/cart/remove/:productId", verifyJWT, removeFromCart);
 router.get("/cart/", verifyJWT, getCart);
 
+router.post("/rejection-cart/add", verifyJWT, addToCartRjection);
+router.delete("/rejection-cart/remove/:productId", verifyJWT, removeFromCartRjection);
+router.get("/rejection-cart/", verifyJWT, getCartRjection);
+
+
 
 // Orders
 router.get("/order", verifyJWT, getOrders);
 router.get("/order/:orderId", verifyJWT, getOrderbyId);
 router.post("/order/create", verifyJWT, createOrder);
+
+
+// Orders
+router.get("/rejection-orders", verifyJWT, getRejectionOrders);
+router.get("/rejection-orders/:orderId", verifyJWT, getRejectionOrderbyId);
+router.post("/rejection-orders/create", verifyJWT, upload.single("issueImage"), (req, res, next) => {
+    if (req.file) {
+        req.body.issueImage = req.file.originalname;
+    }
+    next();
+}, createRejectionOrder);
+
+
+
 
 // support
 router.route("/support").post(verifyJWT, upload.single("issueImage"), (req, res, next) => {
