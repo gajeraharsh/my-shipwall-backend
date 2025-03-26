@@ -67,12 +67,35 @@ const RejectionOrderSchema: Schema = new Schema<any>(
         finalTotal: { type: Number, required: true },
         orderStatus: {
             type: String,
-            enum: ["Initiated", "Pickup_Schedule", "PickedUp", "Received", "Mismatch_Correction", "Validated", "Approved_Credited"],
+            enum: ["Initiated", "Pickup_Schedule", "PickedUp", "Received", "Mismatch_Correction", "Validated", "Approved_Credited", "Cancelled"],
             default: "Initiated",
         },
         deliveredAt: {
             type: Date,
-        }
+        },
+        activities: [
+            {
+                status: {
+                    type: String,
+                    enum: [
+                        "Initiated",
+                        "Cancelled",
+                        "Confirmed",
+                        "Pickup_Schedule",
+                        "PickedUp",
+                        "Received",
+                        "Mismatch_Correction",
+                        "Validated",
+                        "Approved_Credited"
+                    ],
+                    required: true
+                },
+                updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // or "Admin" if you have separate model
+                note: { type: String },
+                updatedAt: { type: Date, default: Date.now }
+            }
+        ],
+
     },
     { timestamps: true }
 );

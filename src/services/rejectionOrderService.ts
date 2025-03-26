@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 import moment from "moment";
 import { Request } from "express";
 import { uploadFileToS3 } from "./fileUploads3Service";
+import Refund from "../models/Refund";
 
 
 export const createOrderRejectionService = async (userId: string, req: Request) => {
@@ -124,10 +125,10 @@ export const fetchAllRejctionOrders = async (req: any) => {
         }, {
             page,
             limit,
-            populate:[
+            populate: [
                 {
-                    path:"user",
-                    select:"fullName id phone"
+                    path: "user",
+                    select: "fullName id phone"
                 }
             ]
         });
@@ -144,11 +145,9 @@ export const fetchAllRejctionOrders = async (req: any) => {
 }
 
 
-
-
-export const getOrderRejectionByIdService = async (orderId: string) => {
+export const fetchRejectionOrderById = async (orderId: string) => {
     try {
-        const order = await RejectionOrder.findOne({ _id: orderId })
+        const order = await RejectionOrder.findById(orderId)
             .populate({
                 path: "products.product",
                 model: "Product",
@@ -160,7 +159,37 @@ export const getOrderRejectionByIdService = async (orderId: string) => {
                 },
             }).populate({
                 path: "user",
-                select: "fullName email phone billingAddress deliveryAddress id _id businessName phone email gstNumber",
+                select: "fullName email phone id",
+            });
+
+        if (!order) {
+            throw new ApiError(httpStatus.NOT_FOUND, "Rejection order not found");
+        }
+
+        return order;
+    } catch (err: any) {
+        console.error(err);
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving rejection order");
+    }
+};
+
+
+
+export const getOrderRejectionByIdService = async (orderId: string) => {
+    try {
+        const order = await RejectionOrder.findOne({ _id: orderId })
+            .populate({
+                path: "products.product",
+                model: "Product",
+                select: "productName modelNo color watt price boxQuantity productThumbImageUrl productThumbImage bodyColor",
+                populate: {
+                    path: "color",
+                    model: "ColorMaster",
+                    select: "colorName",
+                },
+            }).populate({
+                path: "user",
+                select: "fullName email phone  id _id businessName phone email gstNumber profileImage",
                 populate: [
                     {
                         path: "billingAddress.city",
@@ -188,6 +217,10 @@ export const getOrderRejectionByIdService = async (orderId: string) => {
                         select: "name",
                     },
                 ],
+            }).populate({
+                path: "activities.updatedBy",
+                model: "User",
+                select: "fullName _id id profileImage profileImageUrl"
             });
 
 
@@ -200,4 +233,144 @@ export const getOrderRejectionByIdService = async (orderId: string) => {
         console.log(err)
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving order details");
     }
+};
+
+
+
+export const updateRejectionActivityById = async (orderId: any, note: any, status: any, changedBy: any) => {
+    try {
+
+        const res = await RejectionOrder.findByIdAndUpdate(orderId, {
+            $set: { orderStatus: newStatus },
+            $push: {
+                activities: {
+                    status: status,
+                    updatedBy: changedBy,
+                    note: note, // optional
+                }
+            }
+        });
+
+
+        if (!res) throw new ApiError(httpStatus.NOT_FOUND, 'Something went wrong please try again');
+        return res;
+    } catch (err: any) {
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error updating rejection order activities');
+    }
+};
+
+
+
+/**
+ * Updates the order status and logs the activity with predefined note
+ * @param orderId - ID of the rejection order
+ * @param newStatus - New status to set (must be a valid status)
+ * @param changedBy - ID of the user who made the change
+ */
+export const updateRejectionOrderStatusService = async (
+    orderId: string,
+    newStatus: any,
+    changedBy: string
+) => {
+    const order = await RejectionOrder.findById(orderId);
+    if (!order) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
+    }
+
+    const validStatuses: IRejectionOrder["orderStatus"][] = [
+        "Initiated",
+        "Pickup_Schedule",
+        "PickedUp",
+        "Received",
+        "Mismatch_Correction",
+        "Validated",
+        // "Approved_Credited"
+    ];
+
+    if (!validStatuses.includes(newStatus)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid order status");
+    }
+
+    console.log(order?.orderStatus, 'order?.orderStatus')
+    if (order?.orderStatus == "Approved_Credited") {
+        throw new ApiError(httpStatus.BAD_REQUEST, "status is approvved you can not change status.")
+
+    }
+
+    const statusNotes: Record<IRejectionOrder["orderStatus"], string> = {
+        Initiated: "Rejection order has been initiated.",
+        Pickup_Schedule: "Pickup has been scheduled.",
+        PickedUp: "Rejection items have been picked up.",
+        Received: "Rejection items have been received at warehouse.",
+        Mismatch_Correction: "Mismatch identified, correction in progress.",
+        Validated: "Rejection order has been validated.",
+        // Approved_Credited: "Rejection order approved and credit issued.",
+    };
+
+    const note = statusNotes[newStatus] || "";
+
+    // Update status and log activity
+    order.orderStatus = newStatus;
+
+    if (!order.activities) order.activities = [];
+
+    order.activities.push({
+        status: newStatus,
+        updatedBy: changedBy,
+        note,
+        timestamp: new Date(),
+    });
+
+    await order.save();
+
+    return order;
+
+};
+
+
+
+export const createRefundForRejectionOrderService = async ({
+    orderId,
+    refundAmount,
+    note,
+    initiatedBy,
+}: any) => {
+    const rejectionOrder = await RejectionOrder.findById(orderId);
+    if (!rejectionOrder) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Rejection order not found");
+    }
+
+    const existingRefund = await Refund.findOne({
+        rejectionOrder: orderId,
+        sourceType: "RejectionOrder"
+    });
+
+    if (existingRefund) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Refund already initiated for this rejection order");
+    }
+
+    const refund = await Refund.create({
+        rejectionOrder: orderId,
+        user: rejectionOrder.user,
+        amount: refundAmount,
+        sourceType: "RejectionOrder",
+        status: "Initiated",
+        note: note || "Manual refund initiated",
+        initiatedBy,
+    });
+
+
+    rejectionOrder.orderStatus = "Approved_Credited";
+    rejectionOrder.activities.push({
+        status: "Approved_Credited",
+        updatedBy: initiatedBy,
+        note: "Rejection order approved and credit issued",
+        timestamp: new Date(),
+    });
+
+
+    await rejectionOrder.save();
+
+
+    return refund;
 };

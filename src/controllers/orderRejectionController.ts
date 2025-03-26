@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import {
-    createOrderRejectionService, fetchAllRejctionOrders, fetchRejectionOrders,
-    getOrderRejectionByIdService
+    createOrderRejectionService, createRefundForRejectionOrderService, fetchAllRejctionOrders, fetchRejectionOrders,
+    getOrderRejectionByIdService,
+    updateRejectionOrderStatusService
 } from "../services/rejectionOrderService";
 import { asyncHandler } from "../utils/asyncHandler";
 import ApiResponse from "../utils/apiResponse";
@@ -33,4 +34,33 @@ export const getRejectionOrderbyId = asyncHandler(async (req: Request, res: Resp
 
     const order = await getOrderRejectionByIdService(orderId);
     res.status(201).json(new ApiResponse(201, order, "Order rejection fetch successfully"));
+});
+
+/**
+ * Controller to update rejection order status and log activity
+ * @route PATCH /api/rejection-orders/:orderId/status
+ */
+export const updateRejectionOrderStatus = asyncHandler(async (req: Request, res: Response) => {
+    const orderId = req.params.orderId;
+    const { newStatus } = req.body;
+    const changedBy = req.user._id; // assuming `req.user._id` is set via auth middleware
+
+    const updatedOrder = await updateRejectionOrderStatusService(orderId, newStatus, changedBy);
+
+    res.status(200).json(new ApiResponse(200, updatedOrder, "Rejection order status updated successfully"));
+});
+
+
+export const orderRejectionApproveController = asyncHandler(async (req: Request, res: Response) => {
+    const orderId = req.params.orderId;
+    const { refundAmount, } = req.body;
+    const changedBy = req.user._id; // assuming `req.user._id` is set via auth middleware
+
+    const updatedOrder = await createRefundForRejectionOrderService({
+        orderId,
+        refundAmount,
+        initiatedBy: changedBy
+    });
+
+    res.status(200).json(new ApiResponse(200, updatedOrder, "Rejection Approved successfully."));
 });
