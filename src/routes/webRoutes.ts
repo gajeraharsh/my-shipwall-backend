@@ -5,7 +5,7 @@ import { getProductById, getProducts, getWebAllProducts } from "../controllers/p
 import { createUser, getUser, loginUser, logoutUser, updateUser } from "../controllers/userController";
 import { getSeries, getWebSeries } from "../controllers/seriesController";
 import { getCategories } from "../controllers/categoryController";
-import { getProductsByCategory } from "../controllers/Web/seariestController";
+import { getOrderProductsGroupedBySeries, getProductsByCategory } from "../controllers/Web/seariestController";
 import { addToCart, getCart, removeFromCart } from "../controllers/cartController";
 import {
     addToCartRjection,
@@ -27,6 +27,8 @@ import { createSupportValidation, deleteSupportValidation, getSupportValidation,
 import { createSupport, deleteSupport, getSupportById, getSupports, updateSupport } from "../controllers/supportController";
 import { createContactValidation } from "../validations/contactus";
 import { createContact } from "../controllers/contactusController";
+import { addToCartReturn, getCartReturn, removeFromCartReturn } from "../controllers/returnCartController";
+import { createReturnOrder, getReturnOrderbyId, getReturnOrders } from "../controllers/returnOrderController";
 
 const router = express.Router();
 
@@ -143,6 +145,29 @@ router.delete("/support/:id", verifyJWT, validate(deleteSupportValidation), dele
 
 // contact us
 router.route("/contact-us").post(validate(createContactValidation), createContact);
+
+
+
+// Return orders
+router.route("/products-by-return-orders").get(getOrderProductsGroupedBySeries);
+
+
+// return cart
+router.get("/return-cart/", verifyJWT, getCartReturn);
+router.post("/return-cart/add", verifyJWT, addToCartReturn);
+router.delete("/return-cart/remove/:productId", verifyJWT, removeFromCartReturn);
+
+
+// return orders
+router.get("/return-orders", verifyJWT, getReturnOrders);
+router.get("/return-orders/:orderId", verifyJWT, getReturnOrderbyId);
+router.post("/return-orders/create", verifyJWT, upload.single("issueImage"), (req, res, next) => {
+    if (req.file) {
+        req.body.issueImage = req.file.originalname;
+    }
+    next();
+}, createReturnOrder);
+
 
 
 export default router;

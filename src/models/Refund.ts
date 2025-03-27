@@ -14,7 +14,7 @@ export interface IRefund extends Document {
 
 const RefundSchema: Schema = new Schema(
     {
-        order: { type: mongoose.Schema.Types.ObjectId, ref: "Order", default: null },
+        returnOrder: { type: mongoose.Schema.Types.ObjectId, ref: "ReturnOrder", default: null },
         rejectionOrder: { type: mongoose.Schema.Types.ObjectId, ref: "RejectionOrder", default: null },
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         amount: { type: Number, required: true },

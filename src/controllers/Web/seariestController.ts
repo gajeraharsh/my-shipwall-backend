@@ -5,6 +5,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import Series from "../../models/Series";
 import httpStatus from "http-status";
 import Product from "../../models/Product";
+import Order from "../../models/Order";
 
 // export const getProductsByCategory = asyncHandler(async (req: Request, res: Response) => {
 //   try {
@@ -219,5 +220,128 @@ export const getProductsByCategory = asyncHandler(async (req: Request, res: Resp
   } catch (err: any) {
     console.error(err);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving products");
+  }
+});
+
+
+
+export const getOrderProductsGroupedBySeries = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { orderId, categoryId, brandId } = req.query;
+
+    if (!orderId) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Order ID is required");
+    }
+
+    const order = await Order.findById(orderId).lean();
+    if (!order || !order.products || order.products.length === 0) {
+      return res.status(httpStatus.NOT_FOUND).json({ message: "No products found in this order" });
+    }
+
+    const productIds = order.products.map((p: any) => new mongoose.Types.ObjectId(p.product));
+
+    const matchStage: any = {
+      _id: { $in: productIds },
+      status: "Published",
+    };
+
+    if (categoryId) {
+      matchStage.category = new mongoose.Types.ObjectId(categoryId as string);
+    }
+
+    if (brandId) {
+      matchStage.brand = new mongoose.Types.ObjectId(brandId as string);
+    }
+
+    const result = await Product.aggregate([
+      { $match: matchStage },
+
+      // Lookup color
+      {
+        $lookup: {
+          from: "colormasters",
+          localField: "color",
+          foreignField: "_id",
+          as: "colorDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$colorDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Lookup series
+      {
+        $lookup: {
+          from: "series",
+          localField: "series",
+          foreignField: "_id",
+          as: "seriesDetails",
+        },
+      },
+      { $unwind: "$seriesDetails" },
+
+      // Lookup category
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryDetails",
+        },
+      },
+      { $unwind: "$categoryDetails" },
+
+      // Group by series
+      {
+        $group: {
+          _id: "$series",
+          seriesName: { $first: "$seriesDetails.seriesName" },
+          thumbImageUrl: { $first: "$seriesDetails.thumbImageUrl" },
+          gallery: { $first: "$seriesDetails.gallery" },
+          category: {
+            $first: {
+              _id: "$categoryDetails._id",
+              categoryName: "$categoryDetails.categoryName",
+            },
+          },
+          products: {
+            $push: {
+              _id: "$_id",
+              modelNo: "$modelNo",
+              watt: "$watt",
+              bodyColor: "$bodyColor",
+              unitPrice: "$unitPrice",
+              stock: "$stock",
+              unitsInBox: "$unitsInBox",
+              price: "$price",
+              boxQuantity: "$boxQuantity",
+              structure: "$structure",
+              position: "$position",
+              color: {
+                _id: "$colorDetails._id",
+                colorName: "$colorDetails.colorName",
+                colorCode: "$colorDetails.colorCode",
+              },
+            },
+          },
+        },
+      },
+
+      // Sort series by position
+      {
+        $sort: {
+          "seriesDetails.position": 1,
+          "products.position": 1,
+        },
+      },
+    ]);
+
+    res.status(httpStatus.OK).json({ series: result });
+  } catch (err: any) {
+    console.error(err);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving order products by series");
   }
 });

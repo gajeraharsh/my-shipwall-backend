@@ -24,6 +24,7 @@ import saleUserRoute from './routes/seller/saleUserRoutes';
 import customerRoute from './routes/seller/customerRoute';
 import adminUserRotue from './routes/seller/AdminUserRotue';
 import storeVisitRotues from './routes/storeVisitRotues';
+import returnOrderRoutes from './routes/returnOrderRoutes';
 
 
 
@@ -61,6 +62,7 @@ app.use('/api/general-setting', generalSettingRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/contact', contactusRoute)
 app.use('/api/rejection-order', rejectionOrderRoutes)
+app.use('/api/return-order', returnOrderRoutes)
 app.use('/api/web', webRoutes)
 
 app.use("/api/seller/setting", appSettingRoutes)
@@ -69,6 +71,7 @@ app.use("/api/seller/sale-member", saleUserRoute)
 app.use("/api/seller/admin-users", adminUserRotue)
 app.use("/api/seller/customers", customerRoute)
 app.use("/api/seller/store-visit", storeVisitRotues)
+
 
 
 

@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 import paginate from "./plugins/paginate";
 import incrementId from "./plugins/incrementId";
 
+// HSN Tax Interface
 interface HSNTx {
     amount: number;
     percent: number;
@@ -10,54 +11,55 @@ interface HSNTx {
     totalTaxAmount: number;
 }
 
-// Rejection Order Product Interface
-interface RejectionOrderProduct {
+// Order Product Interface
+interface ReturnOrderProduct {
     product: mongoose.Schema.Types.ObjectId;
     quantity: number;
     price: number;
     subtotal: number;
+    boxQuantity: number;
+    boxPrice: number;
     taxAmount: number;
     subTotalIncTax: number;
     taxPercent: number;
     hsnTx: HSNTx;
 }
 
-// Rejection Order Document Interface
-export interface IRejectionOrder extends Document {
-    user: mongoose.Schema.Types.ObjectId;
-    rejectionOrderId: Number;
-    products: RejectionOrderProduct[];
-    finalTotal: number;
-    orderStatus: "Initiated" | "Cancelled" | "Confirmed" | "Pickup_Schedule" | "PickedUp" | "Received" | "Mismatch_Correction" | "Validated" | "Approved_Credited";
-    deliveredAt?: Date;
-    issueImage?: string;
-    reason?: string;
+// Return Order Document Interface
+export interface IReturnOrder extends Document {
+    originalOrderId: mongoose.Schema.Types.ObjectId;
+    returnOrderId: number;
+    products: ReturnOrderProduct[];
+    reason: string;
+    comments?: string;
+    refundStatus: "Initiated" | "Approved" | "Rejected" | "Credited";
+    returnStatus: "Requested" | "Approved" | "PickedUp" | "Inspected" | "Completed" | "Rejected";
     createdAt: Date;
     updatedAt: Date;
 }
 
-// Rejection Order Schema
-const RejectionOrderSchema: Schema = new Schema<any>(
+const ReturnOrderSchema: Schema = new Schema(
     {
-        user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-        rejectionOrderId: { type: Number, required: true, unique: true },
         issueImage: { type: String, required: true },
         reason: { type: String, required: true },
+
         products: [
             {
                 product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-                quantity: { type: Number, required: true, min: 1 },
+                quantity: { type: Number, required: true },
+                boxQuantity: { type: Number, required: true },
+                boxPrice: { type: Number, required: true },
                 price: { type: Number, required: true },
                 subtotal: { type: Number, required: true },
                 taxAmount: { type: Number, required: true },
                 taxPercent: { type: Number, required: true },
                 hsnTx: {
-                    amount: { type: Number, required: false },
-                    percent: { type: Number, required: false },
-                    hsnCode: { type: String, required: false },
-                    taxableValue: { type: String, required: false },
-                    totalTaxAmount: { type: Number, required: false },
-                }
+                    amount: { type: Number },
+                    percent: { type: Number },
+                    hsnCode: { type: String },
+                    taxableValue: { type: String },
+                    totalTaxAmount: { type: Number },
+                },
             },
         ],
         subtotal: { type: Number, required: true, default: 0 },
@@ -65,14 +67,13 @@ const RejectionOrderSchema: Schema = new Schema<any>(
         shippingFee: { type: Number, required: true, default: 0 },
         taxAmount: { type: Number, required: true, default: 0 },
         finalTotal: { type: Number, required: true },
-        orderStatus: {
+
+        returnStatus: {
             type: String,
             enum: ["Initiated", "Pickup_Schedule", "PickedUp", "Received", "Mismatch_Correction", "Validated", "Approved_Credited", "Cancelled"],
             default: "Initiated",
         },
-        deliveredAt: {
-            type: Date,
-        },
+
         activities: [
             {
                 status: {
@@ -90,18 +91,18 @@ const RejectionOrderSchema: Schema = new Schema<any>(
                     ],
                     required: true
                 },
-                updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, 
+                updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
                 note: { type: String },
                 updatedAt: { type: Date, default: Date.now }
             }
         ],
-
+        order: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
     },
     { timestamps: true }
 );
 
-RejectionOrderSchema.plugin(paginate);
-RejectionOrderSchema.plugin(incrementId, "QREJ00");
-RejectionOrderSchema.plugin(incrementId);
+ReturnOrderSchema.plugin(paginate);
+ReturnOrderSchema.plugin(incrementId, "QRETURN");
+ReturnOrderSchema.plugin(incrementId);
 
-export default mongoose.model<IRejectionOrder, any>("RejectionOrder", RejectionOrderSchema);
+export default mongoose.model<IReturnOrder>("ReturnOrder", ReturnOrderSchema);
