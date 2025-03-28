@@ -6,6 +6,8 @@ import ApiError from "../utils/apiError";
 import httpStatus from 'http-status';
 import mongoose from "mongoose";
 import moment from "moment";
+import GeneralSettingModel from "../models/generalSetting";
+import ReturnOrder from "../models/ReturnOrder";
 
 
 export const createOrderService = async (userId: string) => {
@@ -273,7 +275,35 @@ export const getOrderByIdService = async (orderId: string) => {
             throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
         }
 
-        return order;
+        const returnOrder = await ReturnOrder.countDocuments({
+            order: order?._id
+        })
+
+
+        const generalSetting = await GeneralSettingModel.findOne({});
+        const returnDaysLimit = generalSetting?.returnDays || 0;
+
+        const orderDate = moment(order.createdAt);
+        const today = moment();
+        const daysPassed = today.diff(orderDate, "days");
+        const returnDaysLeft = Math.max(returnDaysLimit - daysPassed, 0);
+        const isReturnExpired = daysPassed > returnDaysLimit;
+
+
+        const isReturnedOrder = returnOrder > 0
+
+        const orderObject = order.toObject();
+
+
+        return {
+            ...orderObject,
+            returnDaysLeft,
+            isReturnExpired,
+            isReturnedOrder
+        }
+
+
+
     } catch (err: any) {
         console.log(err)
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving order details");
