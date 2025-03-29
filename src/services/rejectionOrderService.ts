@@ -162,11 +162,22 @@ export const fetchRejectionOrderById = async (orderId: string) => {
                 select: "fullName email phone id",
             });
 
-        if (!order) {
+        const refundOrder = await Refund.find({
+            rejectionOrder: orderId
+        }).populate({
+            path: "user",
+            select: "id _id ",
+        })
+
+        const orderObj = await order?.toObject()
+        orderObj.refund = refundOrder
+
+
+        if (!orderObj) {
             throw new ApiError(httpStatus.NOT_FOUND, "Rejection order not found");
         }
 
-        return order;
+        return orderObj;
     } catch (err: any) {
         console.error(err);
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving rejection order");
@@ -223,12 +234,21 @@ export const getOrderRejectionByIdService = async (orderId: string) => {
                 select: "fullName _id id profileImage profileImageUrl"
             });
 
+        const refundOrder = await Refund.find({
+            rejectionOrder: orderId
+        }).populate({
+            path: "user",
+            select: "id _id ",
+        })
 
-        if (!order) {
+        const orderObj = await order?.toObject()
+        orderObj.refund = refundOrder
+
+        if (!orderObj) {
             throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
         }
 
-        return order;
+        return orderObj;
     } catch (err: any) {
         console.log(err)
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving order details");

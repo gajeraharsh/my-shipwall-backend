@@ -70,7 +70,7 @@ export const createOrderReturnService = async (userId: string, req: Request) => 
         },
         issueImage: issueImageUrl,
         reason: reason,
-        orderStatus: "Initiated",
+        returnStatus: "Initiated",
         order: cart?.order
     });
 
@@ -104,7 +104,7 @@ export const fetchReturnOrders = async (req: any) => {
         const query = req?.query?.search || ''
 
         const orders = await ReturnOrder.paginate({
-            orderStatus: { $regex: query, $options: 'i' },
+            returnStatus: { $regex: query, $options: 'i' },
             user: req?.user?._id
         }, {
             page,
@@ -130,7 +130,8 @@ export const fetchAllReturnOrders = async (req: any) => {
         const query = req?.query?.search || ''
 
         const orders = await ReturnOrder.paginate({
-            orderStatus: { $regex: query, $options: 'i' },
+            returnStatus: { $regex: query, $options: 'i' },
+            id: { $regex: query, $options: 'i' },
         }, {
             page,
             limit,
@@ -170,6 +171,13 @@ export const fetchReturnOrderById = async (orderId: string) => {
                 path: "user",
                 select: "fullName email phone id",
             });
+
+        const refundOrder = await Refund.find({
+            returnOrder: orderId
+        })
+
+        const orderObj = await order?.toObject()
+        order.refund = refundOrder
 
         if (!order) {
             throw new ApiError(httpStatus.NOT_FOUND, "Return order not found");
@@ -233,11 +241,22 @@ export const getOrderReturnByIdService = async (orderId: string) => {
             });
 
 
-        if (!order) {
+        const refundOrder = await Refund.find({
+            returnOrder: orderId
+        }).populate({
+            path: "user",
+            select: "id _id ",
+        })
+
+        const orderObj = await order?.toObject()
+        orderObj.refund = refundOrder
+
+
+        if (!orderObj) {
             throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
         }
 
-        return order;
+        return orderObj;
     } catch (err: any) {
         console.log(err)
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving order details");
@@ -250,7 +269,7 @@ export const updateReturnActivityById = async (orderId: any, note: any, status: 
     try {
 
         const res = await ReturnOrder.findByIdAndUpdate(orderId, {
-            $set: { orderStatus: newStatus },
+            $set: { ordreturnStatuserStatus: newStatus },
             $push: {
                 activities: {
                     status: status,
@@ -286,7 +305,7 @@ export const updateReturnOrderStatusService = async (
         throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
     }
 
-    const validStatuses: IRejectionOrder["orderStatus"][] = [
+    const validStatuses: IRejectionOrder["returnStatus"][] = [
         "Initiated",
         "Pickup_Schedule",
         "PickedUp",
@@ -300,26 +319,26 @@ export const updateReturnOrderStatusService = async (
         throw new ApiError(httpStatus.BAD_REQUEST, "Invalid order status");
     }
 
-    console.log(order?.orderStatus, 'order?.orderStatus')
-    if (order?.orderStatus == "Approved_Credited") {
+    console.log(order?.returnStatus, 'order?.returnStatus')
+    if (order?.returnStatus == "Approved_Credited") {
         throw new ApiError(httpStatus.BAD_REQUEST, "status is approvved you can not change status.")
 
     }
 
-    const statusNotes: Record<IRejectionOrder["orderStatus"], string> = {
-        Initiated: "Rejection order has been initiated.",
-        Pickup_Schedule: "Pickup has been scheduled.",
-        PickedUp: "Rejection items have been picked up.",
-        Received: "Rejection items have been received at warehouse.",
+    const statusNotes: Record<IRejectionOrder["returnStatus"], string> = {
+        Initiated: "Return order has been initiated.",
+        Pickup_Schedule: "Return has been scheduled.",
+        PickedUp: "Return items have been picked up.",
+        Received: "Return items have been received at warehouse.",
         Mismatch_Correction: "Mismatch identified, correction in progress.",
-        Validated: "Rejection order has been validated.",
+        Validated: "Return order has been validated.",
         // Approved_Credited: "Rejection order approved and credit issued.",
     };
 
     const note = statusNotes[newStatus] || "";
 
     // Update status and log activity
-    order.orderStatus = newStatus;
+    order.returnStatus = newStatus;
 
     if (!order.activities) order.activities = [];
 
@@ -369,7 +388,7 @@ export const createReturnForRejectionOrderService = async ({
     });
 
 
-    returnOrder.orderStatus = "Approved_Credited";
+    returnOrder.returnStatus = "Approved_Credited";
     returnOrder.activities.push({
         status: "Approved_Credited",
         updatedBy: initiatedBy,

@@ -42,7 +42,7 @@ const ReturnOrderSchema: Schema = new Schema(
     {
         issueImage: { type: String, required: true },
         reason: { type: String, required: true },
-
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         products: [
             {
                 product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },

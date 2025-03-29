@@ -32,7 +32,6 @@ export interface IOrder extends Document {
     products: OrderProduct[];
     finalTotal: number;
     orderStatus: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
-    paymentStatus: "Pending" | "Paid" | "Failed" | "Refunded";
     shippingDetails: {
         address: string;
         city: string;
@@ -41,6 +40,16 @@ export interface IOrder extends Document {
         country: string;
         phone: string;
     };
+    paymentId: string;
+    paymentRemark: string;
+    paymentMode: string;
+    paymentStatus: "Pending" | "Paid" | "Failed" | "Refunded";
+    trackingId: string;
+    trackingLink: string;
+    transportName: string;
+    sapInvoideNumber: string;
+    eWayBillNo: string;
+    uploadlr: string;
     deliveredAt?: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -77,13 +86,8 @@ const OrderSchema: Schema = new Schema<any>(
         finalTotal: { type: Number, required: true },
         orderStatus: {
             type: String,
-            enum: ["draft", "initiated", "packing", "dispatch", "delevered", "delivered"],
+            enum: ["draft", "initiated", "Received", "Cancelled", "packing", "dispatch", "InLogistic", "delevered"],
             default: "draft",
-        },
-        paymentStatus: {
-            type: String,
-            enum: ["Awaiting Payment", "Paid", "Failed", "Refunded"],
-            default: "Awaiting Payment",
         },
         shippingDetails: {
             address: { type: String, required: true },
@@ -93,12 +97,51 @@ const OrderSchema: Schema = new Schema<any>(
             country: { type: String, required: true },
             phone: { type: String, required: true },
         },
+        paymentStatus: {
+            type: String,
+            enum: ["Awaiting Payment", "Paid", "Failed", "Refunded"],
+            default: "Awaiting Payment",
+        },
+        paymentRemark: {
+            type: String
+        },
+        trackingId: {
+            type: String
+        },
+        trackingLink: {
+            type: String
+        },
+        transportName: {
+            type: String
+        },
+        sapInvoideNumber: {
+            type: String
+        },
+        eWayBillNo: {
+            type: String
+        },
+        uploadlr: {
+            type: String
+        },
         deliveredAt: {
             type: Date,
         }
     },
     { timestamps: true }
 );
+
+
+OrderSchema.virtual("returnOrder", {
+    ref: "ReturnOrder",          // The model to use
+    localField: "_id",           // Field in Order model
+    foreignField: "order",       // Field in ReturnOrder model referencing Order
+    justOne: true                // Each order can have only one returnOrder
+});
+
+
+OrderSchema.set("toObject", { virtuals: true });
+OrderSchema.set("toJSON", { virtuals: true });
+
 
 OrderSchema.plugin(paginate);
 OrderSchema.plugin(incrementId, "QVAPOR");
