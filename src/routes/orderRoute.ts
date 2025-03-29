@@ -22,7 +22,7 @@ router.route("/change-status/:orderId").post(verifyJWT, updateOrderStatusControl
 router.route("/change/:orderId").post(verifyJWT, changeOrderController);
 router.route("/payment/:orderId").post(verifyJWT, chanegPaymentStatusController);
 
-router.route("/").post(verifyJWT, upload.single("uploadlr"), (req, res, next) => {
+router.route("/uploadlr/:orderId").post(verifyJWT, upload.single("uploadlr"), (req, res, next) => {
     if (req.file) {
         req.body.uploadlr = req.file.originalname;
     }

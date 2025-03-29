@@ -276,7 +276,7 @@ export const getOrderByIdService = async (orderId: string) => {
             .populate({
                 path: "products.product",
                 model: "Product",
-                select: "productName modelNo color watt price boxQuantity",
+                select: "productName modelNo color watt price boxQuantity productThumbImageUrl productThumbImage bodyColor",
                 populate: {
                     path: "color",
                     model: "ColorMaster",
@@ -372,6 +372,7 @@ export const updateOrderStatusService = async (
         "dispatch",
         "delevered",
         "InLogistic",
+        "Cancelled"
     ];
 
     if (!validStatuses.includes(newStatus)) {
@@ -416,7 +417,7 @@ export const changeOrder = async (
         order.trackingId = trackingId
     }
 
-    if (trackingId) {
+    if (trackingLink) {
         order.trackingLink = trackingLink
     }
 

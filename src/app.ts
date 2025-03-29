@@ -34,6 +34,8 @@ import webRoutes from './routes/webRoutes';
 
 import ApiError from './utils/apiError';
 import cookieParser from 'cookie-parser'
+import { getDashboardMetrics } from './controllers/adminDashboardController';
+import { verifyJWT } from './middlewares/auth.middleware';
 
 
 dotenv.config();  // Load environment variables from .env file
@@ -65,6 +67,8 @@ app.use('/api/contact', contactusRoute)
 app.use('/api/rejection-order', rejectionOrderRoutes)
 app.use('/api/return-order', returnOrderRoutes)
 app.use('/api/order', orderRoute)
+app.use('/api/dashboard', verifyJWT, getDashboardMetrics)
+
 
 app.use('/api/web', webRoutes)
 

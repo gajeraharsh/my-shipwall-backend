@@ -86,8 +86,8 @@ const OrderSchema: Schema = new Schema<any>(
         finalTotal: { type: Number, required: true },
         orderStatus: {
             type: String,
-            enum: ["draft", "initiated", "Received", "Cancelled", "packing", "dispatch", "InLogistic", "delevered"],
-            default: "draft",
+            enum: ["initiated", "Received", "Cancelled", "packing", "dispatch", "InLogistic", "delevered"],
+            default: "initiated",
         },
         shippingDetails: {
             address: { type: String, required: true },
@@ -102,7 +102,13 @@ const OrderSchema: Schema = new Schema<any>(
             enum: ["Awaiting Payment", "Paid", "Failed", "Refunded"],
             default: "Awaiting Payment",
         },
+        paymentId: {
+            type: String
+        },
         paymentRemark: {
+            type: String
+        },
+        paymentMode: {
             type: String
         },
         trackingId: {

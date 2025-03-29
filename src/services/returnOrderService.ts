@@ -206,7 +206,7 @@ export const getOrderReturnByIdService = async (orderId: string) => {
                 },
             }).populate({
                 path: "user",
-                select: "fullName email phone  id _id businessName phone email gstNumber profileImage",
+                select: "fullName email phone  id _id businessName phone email gstNumber profileImage stock",
                 populate: [
                     {
                         path: "billingAddress.city",
