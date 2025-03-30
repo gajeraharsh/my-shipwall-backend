@@ -154,7 +154,12 @@ export const getCustomerById = asyncHandler(async (req: Request<any>, res: Respo
         .populate({
             path: 'deliveryAddress.state',
             model: 'State'
-        });
+        }).populate(
+            {
+                path: 'salePerson',
+                select: '_id fullName'
+
+            })
 
     if (!user) {
         return res.status(404).json(new ApiResponse(404, {}, "User not found"));

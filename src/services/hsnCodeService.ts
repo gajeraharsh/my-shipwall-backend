@@ -45,7 +45,7 @@ export const fetchHsnCodeDropdown = async (req: any) => {
 
         const options = {
             page: Number(req.query.page) || 1,
-            limit: Number(req.query.limit) || 1,
+            limit: Number(req.query.limit) || 5,
             pagination: true,
         };
 

@@ -4,8 +4,8 @@ import { getBanners } from "../controllers/bannerController";
 import { getProductById, getProducts, getWebAllProducts } from "../controllers/productController";
 import { createUser, getUser, loginUser, logoutUser, updateUser } from "../controllers/userController";
 import { getSeries, getWebSeries } from "../controllers/seriesController";
-import { getCategories } from "../controllers/categoryController";
-import { getProductsByCategory } from "../controllers/Web/seariestController";
+import { getAllCategories, getCategories } from "../controllers/categoryController";
+import { getOrderProductsGroupedBySeries, getProductsByCategory } from "../controllers/Web/seariestController";
 import { addToCart, getCart, removeFromCart } from "../controllers/cartController";
 import {
     addToCartRjection,
@@ -27,6 +27,9 @@ import { createSupportValidation, deleteSupportValidation, getSupportValidation,
 import { createSupport, deleteSupport, getSupportById, getSupports, updateSupport } from "../controllers/supportController";
 import { createContactValidation } from "../validations/contactus";
 import { createContact } from "../controllers/contactusController";
+import { addToCartReturn, getCartReturn, removeFromCartReturn } from "../controllers/returnCartController";
+import { createReturnOrder, getReturnOrderbyId, getReturnOrders } from "../controllers/returnOrderController";
+import { getChats, sendAttachment, sendMessage } from "../controllers/chatController";
 
 const router = express.Router();
 
@@ -88,7 +91,7 @@ router.route("/get-product-list").get(getProductsByCategory);
 
 
 // categories
-router.route("/category").get(getCategories);
+router.route("/category").get(getAllCategories);
 router.route("/categoryBybrand").get(getCategoriesByBrand);
 
 
@@ -143,6 +146,43 @@ router.delete("/support/:id", verifyJWT, validate(deleteSupportValidation), dele
 
 // contact us
 router.route("/contact-us").post(validate(createContactValidation), createContact);
+
+
+
+// Return orders
+router.route("/products-by-return-orders").get(getOrderProductsGroupedBySeries);
+
+
+// return cart
+router.get("/return-cart/", verifyJWT, getCartReturn);
+router.post("/return-cart/add", verifyJWT, addToCartReturn);
+router.delete("/return-cart/remove/:productId", verifyJWT, removeFromCartReturn);
+
+
+// return orders
+router.get("/return-orders", verifyJWT, getReturnOrders);
+router.get("/return-orders/:orderId", verifyJWT, getReturnOrderbyId);
+router.post("/return-orders/create", verifyJWT, upload.single("issueImage"), (req, res, next) => {
+    if (req.file) {
+        req.body.issueImage = req.file.originalname;
+    }
+    next();
+}, createReturnOrder);
+
+
+
+// chat
+router.route("/chat").get(verifyJWT, getChats);
+router.route("/chat/send-message").post(verifyJWT, sendMessage);
+
+router.route("/chat/send-attachment").post(verifyJWT, upload.single("attachment"), (req, res, next) => {
+    if (req.file) {
+        req.body.attachment = req.file.originalname;
+    }
+    next();
+}, sendAttachment);
+
+
 
 
 export default router;

@@ -6,6 +6,9 @@ import ApiError from "../utils/apiError";
 import httpStatus from 'http-status';
 import mongoose from "mongoose";
 import moment from "moment";
+import GeneralSettingModel from "../models/generalSetting";
+import ReturnOrder from "../models/ReturnOrder";
+import { uploadFileToS3 } from "./fileUploads3Service";
 
 
 export const createOrderService = async (userId: string) => {
@@ -52,7 +55,7 @@ export const createOrderService = async (userId: string) => {
             country: "User Country",
             phone: "User Phone",
         },
-        orderStatus: "draft",
+        orderStatus: "initiated",
         paymentStatus: "Awaiting Payment",
     });
 
@@ -80,30 +83,144 @@ export const createOrderService = async (userId: string) => {
 
 export const fetchOrders = async (req: any) => {
     try {
+        const {
+            page = 1,
+            limit = 10,
+            search = "",
+            fromDate,
+            toDate,
+            days,
+            orderStatus,
+            paymentStatus
+        } = req.query;
 
-        const page = req?.query?.page;
-        const limit = req?.query?.limit;
-        const query = req?.query?.search || ''
+        let query: any = { user: req?.user?._id };
 
-        const orders = await Order.paginate({
-            orderStatus: { $regex: query, $options: 'i' },
-            user: req?.user?._id
-        }, {
+        if (search) {
+            query.$or = [
+                { id: { $regex: search, $options: "i" } },
+                { "user.email": { $regex: search, $options: "i" } },
+                { "user.fullName": { $regex: search, $options: "i" } }
+            ];
+        }
+
+        if (days) {
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - parseInt(days));
+            query.createdAt = { $gte: pastDate, $lte: today };
+        } else if (fromDate && toDate) {
+            query.createdAt = { $gte: new Date(fromDate), $lte: new Date(toDate) };
+        } else if (fromDate) {
+            query.createdAt = { $gte: new Date(fromDate) };
+        } else if (toDate) {
+            query.createdAt = { $lte: new Date(toDate) };
+        }
+
+        // Order status filter
+        if (orderStatus) {
+            query.orderStatus = orderStatus;
+        }
+
+        // Payment status filter
+        if (paymentStatus) {
+            query.paymentStatus = paymentStatus;
+        }
+
+        // Fetch orders with returnOrder virtual
+        const orders = await Order.paginate(query, {
             page,
             limit,
+            populate: [
+                {
+                    path: "user",
+                    select: "fullName id phone email"
+                },
+                {
+                    path: "returnOrder",
+                    select: "_id returnStatus refundStatus createdAt"
+                }
+            ],
+            sort: { createdAt: -1 }
         });
-
-        if (!orders || orders.length === 0) {
-            throw new ApiError(httpStatus.NOT_FOUND, 'No orders found');
-        }
 
         return orders;
     } catch (err: any) {
-        console.log(err)
-        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving orders');
+        console.error(err);
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving orders");
     }
-}
+};
 
+
+export const fetchAllOrders = async (req: any) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            search = "",
+            fromDate,
+            toDate,
+            days,
+            orderStatus,
+            paymentStatus
+        } = req.query;
+
+        let query: any = {};
+
+        if (search) {
+            query.$or = [
+                { id: { $regex: search, $options: "i" } },
+                { "user.email": { $regex: search, $options: "i" } },
+                { "user.fullName": { $regex: search, $options: "i" } }
+            ];
+        }
+
+        if (days) {
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - parseInt(days));
+            query.createdAt = { $gte: pastDate, $lte: today };
+        } else if (fromDate && toDate) {
+            query.createdAt = { $gte: new Date(fromDate), $lte: new Date(toDate) };
+        } else if (fromDate) {
+            query.createdAt = { $gte: new Date(fromDate) };
+        } else if (toDate) {
+            query.createdAt = { $lte: new Date(toDate) };
+        }
+
+        // Order status filter
+        if (orderStatus) {
+            query.orderStatus = orderStatus;
+        }
+
+        // Payment status filter
+        if (paymentStatus) {
+            query.paymentStatus = paymentStatus;
+        }
+
+        // Fetch orders with returnOrder virtual
+        const orders = await Order.paginate(query, {
+            page,
+            limit,
+            populate: [
+                {
+                    path: "user",
+                    select: "fullName id phone email"
+                },
+                {
+                    path: "returnOrder",
+                    select: "_id returnStatus refundStatus createdAt"
+                }
+            ],
+            sort: { createdAt: -1 }
+        });
+
+        return orders;
+    } catch (err: any) {
+        console.error(err);
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving orders");
+    }
+};
 
 
 export const fetchOrdersBySalePerson = async (req: any) => {
@@ -229,7 +346,7 @@ export const getOrderByIdService = async (orderId: string) => {
             .populate({
                 path: "products.product",
                 model: "Product",
-                select: "productName modelNo color watt price boxQuantity",
+                select: "productName modelNo color watt price boxQuantity productThumbImageUrl productThumbImage bodyColor stock",
                 populate: {
                     path: "color",
                     model: "ColorMaster",
@@ -266,16 +383,191 @@ export const getOrderByIdService = async (orderId: string) => {
                     },
 
                 ],
-            });
+            }).populate({
+                path: "returnOrder",
+                select: "_id returnStatus refundStatus createdAt"
+            })
 
 
         if (!order) {
             throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
         }
 
-        return order;
+        const returnOrder = await ReturnOrder.countDocuments({
+            order: order?._id
+        })
+
+
+        const generalSetting = await GeneralSettingModel.findOne({});
+        const returnDaysLimit = generalSetting?.returnDays || 0;
+
+        const orderDate = moment(order.createdAt);
+        const today = moment();
+        const daysPassed = today.diff(orderDate, "days");
+        const returnDaysLeft = Math.max(returnDaysLimit - daysPassed, 0);
+        const isReturnExpired = daysPassed > returnDaysLimit;
+
+
+        const isReturnedOrder = returnOrder > 0
+
+        const orderObject = order.toObject();
+
+
+        return {
+            ...orderObject,
+            returnDaysLeft,
+            isReturnExpired,
+            isReturnedOrder
+        }
+
+
+
     } catch (err: any) {
         console.log(err)
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving order details");
     }
 };
+
+
+
+export const updateOrderStatusService = async (
+    orderId: string,
+    newStatus: any,
+    changedBy: string
+) => {
+    const order = await Order.findById(orderId);
+    if (!order) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
+    }
+
+    const validStatuses: IRejectionOrder["returnStatus"][] = [
+        "packing",
+        "dispatch",
+        "delevered",
+        "InLogistic",
+        "Cancelled"
+    ];
+
+    if (!validStatuses.includes(newStatus)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid order status");
+    }
+
+    if (order?.orderStatus == "delevered") {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Order is delivered you can not change it again.")
+
+    }
+    order.orderStatus = newStatus;
+
+
+    await order.save();
+
+    return order;
+
+};
+
+
+export const changeOrder = async (
+    orderId: string,
+    data: any,
+    changedBy: string
+) => {
+
+    const {
+        trackingId = null,
+        trackingLink = null,
+        transportName = null,
+        sapInvoideNumber = null,
+        eWayBillNo = null
+    } = data
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
+    }
+
+
+    if (trackingId) {
+        order.trackingId = trackingId
+    }
+
+    if (trackingLink) {
+        order.trackingLink = trackingLink
+    }
+
+    if (transportName) {
+        order.transportName = transportName
+    }
+
+    if (sapInvoideNumber) {
+        order.sapInvoideNumber = sapInvoideNumber
+    }
+
+    if (eWayBillNo) {
+        order.eWayBillNo = eWayBillNo
+    }
+
+    await order.save();
+
+    return order;
+};
+
+
+export const changePaymentStatus = async (
+    orderId: string,
+    data: any,
+    changedBy: string
+) => {
+
+    const {
+        paymentRemark,
+        paymentMode
+    } = data
+
+    if (!paymentRemark || !paymentMode) {
+        throw new ApiError(httpStatus[400], "Invalid input.");
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
+    }
+
+
+    order.paymentRemark = paymentRemark
+    order.paymentMode = paymentMode
+
+    await order.save();
+
+    return order;
+};
+
+
+
+
+export const UploadLr = async (
+    orderId: string,
+    file: Express.Multer.File | undefined,
+    changedBy: string,
+) => {
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
+    }
+
+    let uploadlrUrl: string | null = null;
+
+    if (file) {
+        uploadlrUrl = await uploadFileToS3(file, changedBy);
+    }
+
+    order.uploadlr = uploadlrUrl
+
+    await order.save();
+
+    return order;
+};
+
+
+
+

@@ -56,6 +56,7 @@ export const fetchProduct = async (req: Request, filter: any = {}) => {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
     const query = req?.query?.search || '';
+    const sortBy = req?.query?.sortBy;
 
     const {
       featureProduct = null,
@@ -67,6 +68,15 @@ export const fetchProduct = async (req: Request, filter: any = {}) => {
     let where: any = {
       ...filter
     }
+
+    const sortOptions: Record<string, any> = {};
+
+    if (sortBy === 'New Added') {
+      sortOptions.createdAt = -1;
+    } else if (sortBy === 'On Sale') {
+      where.stock = { $gt: 0 }; // Greater than 0
+    }
+
 
     if (featureProduct) {
       where['featureProduct'] = featureProduct
@@ -91,6 +101,7 @@ export const fetchProduct = async (req: Request, filter: any = {}) => {
     }, {
       page,
       limit,
+      sort: sortOptions,
       populate: [
         { path: 'brand', select: '_id brandName' },
         { path: 'category', select: '_id categoryName' },

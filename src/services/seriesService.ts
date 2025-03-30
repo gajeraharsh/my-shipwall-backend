@@ -35,6 +35,16 @@ export const fetchSeries = async (req: Request, filter: any = {}) => {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
     const query = req?.query?.search
+    const sortBy = req?.query?.sortBy;
+
+
+    const sortOptions: Record<string, any> = {};
+
+    if (sortBy === 'New Added') {
+      sortOptions.createdAt = -1;
+    } else if (sortBy === 'On Sale') {
+      filter.onSale = true;
+    }
 
     // @ts-ignore
     const series = await Series.paginate({
@@ -43,6 +53,7 @@ export const fetchSeries = async (req: Request, filter: any = {}) => {
     }, {
       page,
       limit,
+      sort: sortOptions,
       populate: [
         { path: 'brand', select: '_id brandName' },
         { path: 'category', select: '_id categoryName' }
@@ -69,7 +80,7 @@ export const fetchSeries = async (req: Request, filter: any = {}) => {
 export const fetchSeriesDropdown = async (req: Request) => {
   try {
     const filter = req.query.search
-      ? { categoryName: { $regex: req.query.search, $options: 'i' } }
+      ? { seriesName: { $regex: req.query.search, $options: 'i' } }
       : {};
 
     const options = {

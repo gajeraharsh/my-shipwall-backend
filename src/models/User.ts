@@ -166,8 +166,11 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Role",
       default: null,
+    },
+    balance: {
+      type: Number,
+      default: 0
     }
-
   },
   {
     timestamps: true,

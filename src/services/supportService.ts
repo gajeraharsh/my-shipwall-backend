@@ -91,7 +91,38 @@ export const fetchTickets = async (req: any) => {
 
 export const getTicketByIdService = async (ticketId: string) => {
     try {
-        const ticket = await Support.findById(ticketId);
+        const ticket = await Support.findById(ticketId).populate({
+            path: "user",
+            select: "fullName email phone billingAddress deliveryAddress id _id businessName phone email gstNumber status docStatus",
+            populate: [
+                {
+                    path: "billingAddress.city",
+                    model: "City", // Replace with your actual city model name
+                    select: "name",
+                },
+                {
+                    path: "billingAddress.state",
+                    model: "State", // Replace with your actual state model name
+                    select: "name",
+                },
+                {
+                    path: "salePerson",
+                    model: "User", // Replace with your actual state model name
+                    select: "fullName",
+                },
+                {
+                    path: "deliveryAddress.city",
+                    model: "City", // Replace with your actual city model name
+                    select: "name",
+                },
+                {
+                    path: "deliveryAddress.state",
+                    model: "State", // Replace with your actual state model name
+                    select: "name",
+                },
+
+            ],
+        });
 
         if (!ticket) {
             throw new ApiError(httpStatus.NOT_FOUND, 'Ticket not found');
