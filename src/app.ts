@@ -17,6 +17,7 @@ import supportRoutes from './routes/supportRoutes';
 import contactusRoute from './routes/contactusRoute';
 import rejectionOrderRoutes from './routes/rejectionOrderRoutes';
 import orderRoute from './routes/orderRoute';
+import chatRoutes from './routes/chatRoutes';
 
 
 import appSettingRoutes from './routes/seller/AppSettingRoutes';
@@ -67,6 +68,8 @@ app.use('/api/contact', contactusRoute)
 app.use('/api/rejection-order', rejectionOrderRoutes)
 app.use('/api/return-order', returnOrderRoutes)
 app.use('/api/order', orderRoute)
+app.use('/api/chat', chatRoutes)
+
 app.use('/api/dashboard', verifyJWT, getDashboardMetrics)
 
 

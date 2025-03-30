@@ -109,7 +109,8 @@ const OrderSchema: Schema = new Schema<any>(
             type: String
         },
         paymentMode: {
-            type: String
+            type: String,
+            enum: ["E-Pay", "Cheque", "Cash"]
         },
         trackingId: {
             type: String

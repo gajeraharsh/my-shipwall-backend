@@ -77,6 +77,7 @@ export interface IUserModal extends Document {
   adminRole: Types.ObjectId;
   salePersonDocument: any;
   salePersonDocType: any;
+  balance: any
 }
 
 

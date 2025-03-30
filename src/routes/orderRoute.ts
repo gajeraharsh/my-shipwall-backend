@@ -5,8 +5,8 @@ import {
     UploadLrController,
     chanegPaymentStatusController,
     changeOrderController,
+    getAllOrders,
     getOrderbyId,
-    getOrders,
     updateOrderStatusController
 } from "../controllers/orderController";
 import upload from "../middlewares/upload";
@@ -14,7 +14,8 @@ import upload from "../middlewares/upload";
 const router = express.Router();
 
 
-router.route("/").get(verifyJWT, getOrders);
+router.route("/").get(verifyJWT, getAllOrders);
+
 router.route("/:orderId").get(verifyJWT, getOrderbyId);
 
 

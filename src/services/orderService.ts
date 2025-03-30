@@ -55,7 +55,7 @@ export const createOrderService = async (userId: string) => {
             country: "User Country",
             phone: "User Phone",
         },
-        orderStatus: "draft",
+        orderStatus: "initiated",
         paymentStatus: "Awaiting Payment",
     });
 
@@ -151,6 +151,76 @@ export const fetchOrders = async (req: any) => {
     }
 };
 
+
+export const fetchAllOrders = async (req: any) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            search = "",
+            fromDate,
+            toDate,
+            days,
+            orderStatus,
+            paymentStatus
+        } = req.query;
+
+        let query: any = {};
+
+        if (search) {
+            query.$or = [
+                { id: { $regex: search, $options: "i" } },
+                { "user.email": { $regex: search, $options: "i" } },
+                { "user.fullName": { $regex: search, $options: "i" } }
+            ];
+        }
+
+        if (days) {
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - parseInt(days));
+            query.createdAt = { $gte: pastDate, $lte: today };
+        } else if (fromDate && toDate) {
+            query.createdAt = { $gte: new Date(fromDate), $lte: new Date(toDate) };
+        } else if (fromDate) {
+            query.createdAt = { $gte: new Date(fromDate) };
+        } else if (toDate) {
+            query.createdAt = { $lte: new Date(toDate) };
+        }
+
+        // Order status filter
+        if (orderStatus) {
+            query.orderStatus = orderStatus;
+        }
+
+        // Payment status filter
+        if (paymentStatus) {
+            query.paymentStatus = paymentStatus;
+        }
+
+        // Fetch orders with returnOrder virtual
+        const orders = await Order.paginate(query, {
+            page,
+            limit,
+            populate: [
+                {
+                    path: "user",
+                    select: "fullName id phone email"
+                },
+                {
+                    path: "returnOrder",
+                    select: "_id returnStatus refundStatus createdAt"
+                }
+            ],
+            sort: { createdAt: -1 }
+        });
+
+        return orders;
+    } catch (err: any) {
+        console.error(err);
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Error retrieving orders");
+    }
+};
 
 
 export const fetchOrdersBySalePerson = async (req: any) => {
@@ -276,7 +346,7 @@ export const getOrderByIdService = async (orderId: string) => {
             .populate({
                 path: "products.product",
                 model: "Product",
-                select: "productName modelNo color watt price boxQuantity productThumbImageUrl productThumbImage bodyColor",
+                select: "productName modelNo color watt price boxQuantity productThumbImageUrl productThumbImage bodyColor stock",
                 populate: {
                     path: "color",
                     model: "ColorMaster",
@@ -313,7 +383,10 @@ export const getOrderByIdService = async (orderId: string) => {
                     },
 
                 ],
-            });
+            }).populate({
+                path: "returnOrder",
+                select: "_id returnStatus refundStatus createdAt"
+            })
 
 
         if (!order) {

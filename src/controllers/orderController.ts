@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { changeOrder, changePaymentStatus, createOrderService, fetchOrders, fetchOrdersBySalePerson, getOrderByIdService, updateOrderStatusService, UploadLr } from "../services/orderService";
+import { changeOrder, changePaymentStatus, createOrderService, fetchAllOrders, fetchOrders, fetchOrdersBySalePerson, getOrderByIdService, updateOrderStatusService, UploadLr } from "../services/orderService";
 import { asyncHandler } from "../utils/asyncHandler";
 import ApiResponse from "../utils/apiResponse";
 
@@ -15,6 +15,12 @@ export const getOrders = asyncHandler(async (req: Request, res: Response) => {
     const order = await fetchOrders(req);
     res.status(201).json(new ApiResponse(201, order, "Order fetch successfully"));
 });
+
+export const getAllOrders = asyncHandler(async (req: Request, res: Response) => {
+    const order = await fetchAllOrders(req);
+    res.status(201).json(new ApiResponse(201, order, "Order fetch successfully"));
+});
+
 
 export const getOrderBySalePerson = asyncHandler(async (req: Request, res: Response) => {
     const order = await fetchOrdersBySalePerson(req);

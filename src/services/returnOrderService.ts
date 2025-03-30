@@ -10,10 +10,11 @@ import { uploadFileToS3 } from "./fileUploads3Service";
 import Refund from "../models/Refund";
 import ReturnOrder from "../models/ReturnOrder";
 import ReturnCart from "../models/ReturnCart";
+import User from "../models/User";
 
 
 export const createOrderReturnService = async (userId: string, req: Request) => {
-    const cart = await ReturnCart.findOne({ user: userId }).populate("products.product");
+    const cart = await ReturnCart.findOne({ user: userId, order: req?.body?.orderId }).populate("products.product");
 
     if (!cart || cart.products.length === 0) {
         throw new ApiError(400, "Your Return Order List is empty. Cannot Place An Rejection Order.");
@@ -77,10 +78,10 @@ export const createOrderReturnService = async (userId: string, req: Request) => 
     await newOrder.save();
 
 
-    for (const item of cart.products) {
-        const productCurrentStock = parseInt(item?.product?.stock)
-        await Product.findByIdAndUpdate(item.product._id, { stock: productCurrentStock - item.quantity });
-    }
+    // for (const item of cart.products) {
+    //     const productCurrentStock = parseInt(item?.product?.stock)
+    //     await Product.findByIdAndUpdate(item.product._id, { stock: productCurrentStock - item.quantity });
+    // }
 
     cart.products = [];
     cart.totalAmount = 0;
@@ -238,6 +239,9 @@ export const getOrderReturnByIdService = async (orderId: string) => {
                 path: "activities.updatedBy",
                 model: "User",
                 select: "fullName _id id profileImage profileImageUrl"
+            }).populate({
+                path: "order",
+                select: "_id id"
             });
 
 
@@ -386,6 +390,18 @@ export const createReturnForRejectionOrderService = async ({
         note: note || "Manual refund initiated",
         initiatedBy,
     });
+
+
+    const user = await User.findByIdAndUpdate(
+        returnOrder.user,
+        {
+            $inc: {
+                balance: Number(refundAmount), // Assumes `balance` is a numeric field in the User schema
+            }
+        },
+        { new: true } // to return the updated user document if needed
+    );
+    
 
 
     returnOrder.returnStatus = "Approved_Credited";

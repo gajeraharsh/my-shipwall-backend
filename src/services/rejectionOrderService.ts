@@ -9,6 +9,7 @@ import moment from "moment";
 import { Request } from "express";
 import { uploadFileToS3 } from "./fileUploads3Service";
 import Refund from "../models/Refund";
+import User from "../models/User";
 
 
 export const createOrderRejectionService = async (userId: string, req: Request) => {
@@ -69,10 +70,10 @@ export const createOrderRejectionService = async (userId: string, req: Request) 
     await newOrder.save();
 
 
-    for (const item of cart.products) {
-        const productCurrentStock = parseInt(item?.product?.stock)
-        await Product.findByIdAndUpdate(item.product._id, { stock: productCurrentStock - item.quantity });
-    }
+    // for (const item of cart.products) {
+    //     const productCurrentStock = parseInt(item?.product?.stock)
+    //     await Product.findByIdAndUpdate(item.product._id, { stock: productCurrentStock - item.quantity });
+    // }
 
     cart.products = [];
     cart.totalAmount = 0;
@@ -378,6 +379,17 @@ export const createRefundForRejectionOrderService = async ({
         note: note || "Manual refund initiated",
         initiatedBy,
     });
+
+
+    const user = await User.findByIdAndUpdate(
+        rejectionOrder.user,
+        {
+            $inc: {
+                balance: Number(refundAmount), // Assumes `balance` is a numeric field in the User schema
+            }
+        },
+        { new: true } // to return the updated user document if needed
+    );
 
 
     rejectionOrder.orderStatus = "Approved_Credited";
