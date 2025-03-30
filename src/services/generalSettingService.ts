@@ -9,7 +9,8 @@ export const getGeneralSettings = async () => {
 
         if (!generalSettings) {
             return {
-                generalshippingcost: 0
+                generalshippingcost: 0,
+                returnDays: 0
             }
         }
 

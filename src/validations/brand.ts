@@ -52,4 +52,9 @@ const getBrandValidation = Joi.object({
     }),
 });
 
-export { createBrandValidation, updateBrandValidation, deleteBrandValidation, getBrandValidation };
+const updateBrandOrderValidation = Joi.object({
+    ids: Joi.array().required(),
+});
+
+
+export { createBrandValidation, updateBrandValidation, deleteBrandValidation, getBrandValidation, updateBrandOrderValidation };

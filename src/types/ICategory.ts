@@ -11,6 +11,7 @@ export interface ICategory extends Document {
   displayHome: boolean;
   status: string | 'Draft' | "Published";
   iconImageUrl?: string;
+  position: number;
 }
 
 export interface ICategorybody {

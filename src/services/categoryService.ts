@@ -54,7 +54,7 @@ export const fetchCategories = async (req: any) => {
 
     /// @ts-ignore
     const categories = await Category.paginate({
-      categoryName: { $regex: query, $options: 'i' }
+      categoryName: { $regex: query ?? "", $options: 'i' }
     }, {
       page,
       limit,
@@ -139,3 +139,52 @@ export const deleteCategoryIdById = async (categoryId: string) => {
   }
 };
 
+
+
+export const fetchAllCategories = async (req: any) => {
+  try {
+
+    const { brandId = null } = req?.query
+
+    const filter = {
+      ...(brandId && {
+        brand: brandId
+      })
+    };
+
+
+    const options = {
+      sortBy: 'position:asc',
+      pagination: false,
+    };
+
+    const categories = await Category.paginate(filter, options);
+
+    return categories.results;
+  } catch (err: any) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Error retrieving categories');
+  }
+};
+
+export const updateCategoryOrderService = async (categories: { _id: string }[]) => {
+  try {
+    if (!categories || categories.length === 0) {
+      throw new ApiError(400, "Invalid categorries list");
+    }
+
+
+    const bulkOps = categories.map((category, index) => ({
+      updateOne: {
+        filter: { _id: category },
+        update: { $set: { position: index + 1 } },
+        upsert: true,
+      },
+    }));
+
+    const result = await Category.bulkWrite(bulkOps);
+
+    return { success: true, message: "Category order updated successfully", result };
+  } catch (err: any) {
+    throw new ApiError(500, "Error updating category order: " + err.message);
+  }
+};
