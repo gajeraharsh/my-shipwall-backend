@@ -19,12 +19,13 @@ export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     throw new ApiError(400, "Validation failed.", error?.details);
   }
 
-  const { phone, userName, logginId, role } = value
+  const { phone, userName, logginId, role, email } = value
 
   const query: any[] = [];
 
   if (userName) query.push({ userName, role });
   if (phone) query.push({ phone, role });
+  if (email) query.push({ email, role });
   if (logginId) query.push({ logginId, role });
 
 
@@ -42,12 +43,15 @@ export const createUser = asyncHandler(async (req: Request<IUserBody>, res: Resp
     "-password -refreshToken"
   )
 
+  await createdUser.generateAndSendOtp(); // Assuming this method exists as in previous messages
+
+
   if (!createdUser) {
     throw new ApiError(500, "Something went wrong while registering the user")
   }
 
   return res.status(201).json(
-    new ApiResponse(200, createdUser, "User registered Successfully")
+    new ApiResponse(200, createdUser, "User registered successfully. OTP sent to email")
   )
 
 });
@@ -103,15 +107,33 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   if (userName) query.push({ userName, role });
   if (phone) query.push({ phone, role });
+  if (phone) query.push({ email: phone, role });
   if (logginId) query.push({ logginId, role });
 
 
-  const user = await User.findOne({
+  const user: any = await User.findOne({
     $or: query
   }) as UserDocument
 
   if (!user) {
     throw new ApiError(404, "User does not exist")
+  }
+
+
+  if (user?.status != 'Verified' && user?.role == 'user') {
+    await user.generateAndSendOtp(); // Assuming generateAndSendOtp method sends the OTP
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          code: "otp_sent",
+          id: user?._id
+        },
+        "User not verified. OTP sent to your email/phone. Please verify to login."
+      )
+    );
+
   }
 
   console.log(query, 'query')
@@ -150,6 +172,136 @@ export const loginUser = asyncHandler(async (req, res) => {
 
 
 })
+
+
+
+
+
+export const forgotPasswordController = asyncHandler(async (req: Request, res: Response) => {
+
+  const { email } = req?.body;
+
+  // Find the user by email
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, 'User not found with that email address');
+  }
+
+  // Generate and send reset token via email
+  await user.generatePasswordResetToken();
+
+  // Success response
+  return res.status(200).json(
+    new ApiResponse(200, null, 'Password reset link has been sent to your email address.')
+  );
+});
+
+
+
+export const resetPasswordController = asyncHandler(async (req: Request, res: Response) => {
+
+  const { token, newPassword } = req?.body;
+
+  // Find the user by reset password token and check if it's not expired
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordTokenExpiresAt: { $gt: Date.now() }, // Ensure token is not expired
+  });
+
+  if (!user) {
+    throw new ApiError(400, 'Invalid or expired token');
+  }
+
+  // Update the user's password
+  user.password = newPassword;
+  user.resetPasswordToken = undefined; // Clear reset token
+  user.resetPasswordTokenExpiresAt = undefined; // Clear expiration time
+  await user.save();
+
+  // Success response
+  return res.status(200).json(
+    new ApiResponse(200, null, 'Password has been successfully reset')
+  );
+});
+
+
+export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
+  const { otp, userId }: { otp: string, userId: string } = req.body;
+
+  // Validate OTP and User ID
+  if (!otp || !userId) {
+    throw new ApiError(400, 'OTP and User ID are required');
+  }
+
+  // Find the user by ID
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  // Check if OTP exists and is valid
+  if (!user.otp || user.otp !== otp) {
+    throw new ApiError(400, 'Invalid OTP');
+  }
+
+  // OTP is valid, verify the user and clear OTP
+  user.isVerified = true;
+  user.otp = undefined; // Remove OTP once it's verified
+  user.status = "Verified"
+
+  // Save the user with updated verification status
+  await user.save();
+
+  return res.status(200).json(
+    new ApiResponse(200, user, 'User verified successfully')
+  );
+});
+
+
+export const resendOtp = asyncHandler(async (req, res) => {
+  const { phone, userName, logginId, role } = req.body;
+
+  // Validate incoming request body
+  const { error, value } = userValidationLoginSchema.validate(req?.body, { abortEarly: false });
+  if (error) {
+    console.log(error.details);
+    throw new ApiError(400, "Validation failed.", error?.details);
+  }
+
+  const query: any[] = [];
+
+  if (userName) query.push({ userName, role });
+  if (phone) query.push({ phone, role });
+  if (logginId) query.push({ logginId, role });
+
+  // Find user by query parameters (phone, username, loginId)
+  const user: any = await User.findOne({
+    $or: query,
+  }) as UserDocument;
+
+  // Check if user exists
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+
+  // If the user is already verified, no need to resend OTP
+  if (user.status == 'Verified') {
+    throw new ApiError(400, "User is already verified. You can log in directly.");
+  }
+
+  // Generate and send the OTP again
+  await user.generateAndSendOtp();
+
+  // Send response to user
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {},
+      "OTP has been resent. Please check your phone/email."
+    )
+  );
+});
 
 
 interface CustomRequest extends Request {

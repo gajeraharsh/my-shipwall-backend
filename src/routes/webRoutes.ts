@@ -2,7 +2,7 @@ import express from "express";
 import { authorizeRoles, verifyJWT } from "../middlewares/auth.middleware";
 import { getBanners } from "../controllers/bannerController";
 import { getProductById, getProducts, getWebAllProducts } from "../controllers/productController";
-import { createUser, getUser, loginUser, logoutUser, updateUser } from "../controllers/userController";
+import { changePassword, createUser, forgotPasswordController, getUser, loginUser, logoutUser, resendOtp, resetPasswordController, updateUser, verifyOtp } from "../controllers/userController";
 import { getSeries, getWebSeries } from "../controllers/seriesController";
 import { getAllCategories, getCategories } from "../controllers/categoryController";
 import { getOrderProductsGroupedBySeries, getProductsByCategory } from "../controllers/Web/seariestController";
@@ -38,7 +38,16 @@ const router = express.Router();
 
 router.route("/auth/create").post(createUser);
 router.route("/auth/login").post(loginUser);
+router.route("/auth/verifyopt").post(verifyOtp);
+router.route("/auth/forgotpassword").post(forgotPasswordController);
+router.route("/auth/resetpassword").post(resetPasswordController);
+
+router.route("/auth/resendotp").post(resendOtp);
+
+
 router.route("/auth/logout").post(verifyJWT, logoutUser);
+
+router.route("/auth/changepassword").post(verifyJWT, changePassword);
 
 router.route("/auth/user/:userId").put(verifyJWT, upload.fields([
     { name: 'profileImage', maxCount: 1 },
