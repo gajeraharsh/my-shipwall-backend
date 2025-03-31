@@ -4,8 +4,10 @@ import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import paginate from './plugins/paginate';
 import incrementId from './plugins/incrementId';
+import crypto from 'crypto'; // For generating OTP
+import nodemailer from 'nodemailer'
 
-const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
+const userSchema: Schema<any, any, any> = new Schema(
   {
     userName: {
       type: String,
@@ -77,6 +79,18 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
     },
     refreshToken: {
       type: String,
+    },
+    otp: {
+      type: String,
+      required: false,
+    },
+    otpExpiresAt: {
+      type: Date,
+      required: false,
+    },
+    otpVerified: {
+      type: Boolean,
+      default: false,
     },
     billingAddress: {
       line1: { type: String, required: false },
@@ -170,7 +184,14 @@ const userSchema: Schema<IUserModal, UserModel, IUserMethods> = new Schema(
     balance: {
       type: Number,
       default: 0
-    }
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordTokenExpiresAt: {
+      type: Date,
+    },
+
   },
   {
     timestamps: true,
@@ -184,6 +205,104 @@ userSchema.pre("save", async function (next) {
   // this.password = await bcrypt.hash(this.password, 10)
   next()
 })
+
+
+userSchema.methods.generatePasswordResetToken = async function () {
+  // Generate a random token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // Set token expiration time (e.g., 1 hour)
+  this.resetPasswordTokenExpiresAt = Date.now() + 3600000; // 1 hour
+
+  // Store the token
+  this.resetPasswordToken = resetToken;
+  await this.save();
+
+  // Send password reset email
+  await this.sendPasswordResetEmail(resetToken);
+};
+
+
+
+userSchema.methods.sendPasswordResetEmail = async function (token: string) {
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+
+  // Setup email transporter
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  // Compose email
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: this.email,
+    subject: 'Password Reset Request',
+    text: `Click the following link to reset your password: ${resetUrl}`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error: any) {
+    throw new Error('Error sending password reset email: ' + error.message);
+  }
+};
+
+// Generate OTP and send it via email
+userSchema.methods.generateAndSendOtp = async function () {
+  const otp = Array.from({ length: 5 }, () => crypto.randomInt(0, 10)).join('');
+
+  // Store OTP and expiration time (e.g., 5 minutes)
+  this.otp = otp;
+  this.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+  this.otpVerified = false;
+  await this.save();
+
+  // Setup email transporter
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  // Compose email
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: this.email,
+    subject: 'Your OTP for Login',
+    text: `Your OTP for login is: ${otp}. It is valid for 5 minutes.`,
+  };
+
+  // Send OTP email
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error: any) {
+    throw new Error('Error sending OTP email: ' + error.message);
+  }
+};
+
+// Verify OTP provided by the user
+userSchema.methods.verifyOtp = async function (otp: string) {
+  // Check if OTP is expired
+  if (new Date() > this.otpExpiresAt) {
+    throw new Error('OTP has expired');
+  }
+
+  // Check if OTP is correct
+  if (this.otp !== otp) {
+    throw new Error('Invalid OTP');
+  }
+
+  // Mark OTP as verified
+  this.otpVerified = true;
+  await this.save();
+};
+
 
 userSchema.methods.isPasswordCorrect = async function (password: string) {
   // return await bcrypt.compare(password, this.password)
@@ -246,6 +365,6 @@ userSchema.plugin(paginate);
 userSchema.plugin(incrementId, "QVAPCU");
 
 
-const User = mongoose.model<IUserModal>('User', userSchema);
+const User = mongoose.model<any>('User', userSchema);
 
 export default User;
