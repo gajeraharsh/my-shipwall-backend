@@ -61,7 +61,6 @@ export const createOrderService = async (userId: string) => {
 
     await newOrder.save();
 
-    console.log(cart)
 
     for (const item of cart.products) {
         const productCurrentStock = parseInt(item?.product?.stock)
@@ -224,24 +223,80 @@ export const fetchAllOrders = async (req: any) => {
 
 
 export const fetchOrdersBySalePerson = async (req: any) => {
-    const { page = 1, limit = 10, search = '', startDate, endDate, orderStatus, salePersonId } = req.query;
+    const {
+        page = 1,
+        limit = 10,
+        search = '',
+        startDate,
+        endDate,
+        orderStatus,
+        salePersonId,
+        days,  // Today, Yesterday, 7days, 30days
+        state,   // Filter by user state
+        city      // Filter by user city
+    } = req.query;
 
-    const matchStage: any = {
-        "userInfo.salePerson": new mongoose.Types.ObjectId(salePersonId),
-    };
+    const matchStage: any = {};
+
+    // Filter by salePersonId
+    if (salePersonId) {
+        matchStage["userInfo.salePerson"] = new mongoose.Types.ObjectId(salePersonId);
+    }
+
+    if (search) {
+        matchStage.$or = [
+            { id: search }, // Search by orderId (if number)
+            { "userInfo.fullName": { $regex: search, $options: "i" } }, // Search by user name
+            { "salePersonInfo.fullName": { $regex: search, $options: "i" } }, // Search by salesperson namete
+            { "trackingId": { $regex: search, $options: "i" } }, // Search by tracking ID
+            { "transportName": { $regex: search, $options: "i" } }, // Search by transport name
+            { "paymentId": { $regex: search, $options: "i" } }, // Search by payment ID
+            { "products.hsnTx.hsnCode": { $regex: search, $options: "i" } } // Search by HSN code
+        ];
+    }
+
 
     // Filter by orderStatus or search query
     if (orderStatus) {
         matchStage.orderStatus = orderStatus;
-    } else if (search) {
-        matchStage.orderStatus = { $regex: search, $options: 'i' };
     }
 
-    // Filter by date range
+    // Filter by days (today, yesterday, 7days, 30days)
+    if (days) {
+        let startDate = new Date();
+        switch (days) {
+            case '7': // Last 7 Days
+                startDate.setDate(startDate.getDate() - 7);
+                break;
+            case '30': // Last 30 Days
+                startDate.setDate(startDate.getDate() - 30);
+                break;
+            case 'yesterday': // Yesterday
+                startDate.setDate(startDate.getDate() - 1);
+                break;
+            case 'today': // Today
+                startDate.setHours(0, 0, 0, 0); // Set to the start of today
+                break;
+            default:
+                startDate = null;
+        }
+    }
+
+    // Filter by date range (startDate and endDate)
     if (startDate || endDate) {
         matchStage.createdAt = {};
         if (startDate) matchStage.createdAt.$gte = new Date(startDate as string);
         if (endDate) matchStage.createdAt.$lte = new Date(endDate as string);
+    }
+
+    // Filter by state (user billing address state)
+    if (state) {
+        matchStage["userInfo.billingAddress.state"] = new mongoose.Types.ObjectId(state);
+    }
+
+    // Filter by city (user billing address city)
+    if (city) {
+        matchStage["userInfo.billingAddress.city"] = new mongoose.Types.ObjectId(city);
     }
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -286,7 +341,22 @@ export const fetchOrdersBySalePerson = async (req: any) => {
                 preserveNullAndEmptyArrays: true
             }
         },
+        {
+            $lookup: {
+                from: "users",  // You want to join the 'users' collection again for the salePerson
+                localField: "userInfo.salePerson",
+                foreignField: "_id",
+                as: "salePersonInfo"
+            }
+        },
+        {
+            $unwind: {
+                path: "$salePersonInfo",
+                preserveNullAndEmptyArrays: true  // Include orders without a salePerson if needed
+            }
+        },
 
+        // Apply the match stage for filtering orders
         { $match: matchStage },
 
         {
@@ -307,8 +377,9 @@ export const fetchOrdersBySalePerson = async (req: any) => {
                 createdAt: 1,
                 updatedAt: 1,
                 hsnTx: 1,
-                user: "$userInfo"
-            }
+                user: "$userInfo",
+                salePerson: "$salePersonInfo"  // Add the salePerson info to the projection
+            },
         },
         { $sort: { createdAt: -1 } },
         { $skip: skip },
@@ -338,6 +409,7 @@ export const fetchOrdersBySalePerson = async (req: any) => {
         totalPages: Math.ceil(totalDocs / limit)
     };
 };
+
 
 
 export const getOrderByIdService = async (orderId: string) => {

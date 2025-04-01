@@ -5,7 +5,9 @@ import {
     deleteCustomerById,
     getCustomerById,
     getCustomerOrders,
+    getCustomerPotentialReport,
     getCustomers,
+    getStoreVisits,
     updateCustomer
 } from '../../controllers/seller/customerController';
 import { verifyJWT } from '../../middlewares/auth.middleware';
@@ -15,6 +17,10 @@ const router = express.Router();
 
 router.route("/").post(createCustomer);
 router.route("/").get(verifyJWT, getCustomers);
+router.route("/store-visit").get(verifyJWT, getStoreVisits);
+router.route("/potential-report").get(verifyJWT, getCustomerPotentialReport);
+
+
 router.route('/orders').get(verifyJWT, getCustomerOrders)
 router.route('/:id').get(verifyJWT, getCustomerById)
 
