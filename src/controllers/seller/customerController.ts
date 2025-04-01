@@ -9,6 +9,8 @@ import { uploadFileToS3 } from '../../services/fileUploads3Service';
 import Order from '../../models/Order';
 import httpStatus from 'http-status'
 import mongoose from 'mongoose';
+import StoreVisit from '../../models/StoreVisit';
+import { Types } from 'mongoose';
 
 export const createCustomer = asyncHandler(async (req: Request<IUserBody>, res: Response) => {
     const { error, value } = userValidationSchema.validate(req?.body, { abortEarly: false });
@@ -345,4 +347,320 @@ export const assignSaleUser = asyncHandler(async (req: Request<IUserBody>, res: 
         new ApiResponse(200, userWithoutSensitiveInfo, "Sale person assign successsfully")
     );
 
+});
+
+
+
+export const getStoreVisits = asyncHandler(async (req: Request, res: Response) => {
+    const {
+        search,
+        page = 1,
+        limit = 10,
+        startDate = '',
+        endDate = '',
+        days,
+        state,
+        city,
+        salePerson,
+    }: any = req.query;
+
+    const matchConditions: any = {};
+
+    // 🌟 Search user by fullName or user ID
+    if (search) {
+        matchConditions["$or"] = [
+            { "user.fullName": { $regex: search, $options: "i" } }, // Search by name
+            { "user.id": search }, // Search by user ID (exact match)
+        ];
+    }
+
+    // Date range filter
+    if (startDate || endDate) {
+        matchConditions["fromDate"] = {};
+        if (startDate) matchConditions["fromDate"].$gte = new Date(startDate);
+        if (endDate) matchConditions["fromDate"].$lte = new Date(endDate);
+    }
+
+    // Filter by last X days
+    if (days) {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - Number(days));
+        matchConditions["fromDate"] = { $gte: daysAgo };
+    }
+
+    // State filter
+    if (state) {
+        matchConditions["user.currentAddress.state"] = state;
+    }
+
+    // City filter
+    if (city) {
+        matchConditions["user.currentAddress.city"] = city;
+    }
+
+    // SalePerson filter
+    if (salePerson) {
+        if (!Types.ObjectId.isValid(salePerson)) {
+            return res.status(400).json({ message: "Invalid salePerson ID" });
+        }
+        matchConditions["user.salePerson"] = new Types.ObjectId(salePerson);
+    }
+
+    const pipeline = [
+        // Step 1: Join StoreVisit with User
+        {
+            $lookup: {
+                from: "users", // 👈 Ensure this matches your MongoDB collection name
+                localField: "user",
+                foreignField: "_id",
+                as: "user",
+            },
+        },
+        { $unwind: "$user" }, // Flatten the user array
+
+        // Step 2: Apply filters
+        { $match: matchConditions },
+
+        // Step 3: Join SalePerson data
+        {
+            $lookup: {
+                from: "users",
+                localField: "user.salePerson",
+                foreignField: "_id",
+                as: "user.salePerson",
+            },
+        },
+        { $unwind: { path: "$user.salePerson", preserveNullAndEmptyArrays: true } },
+
+        // Step 4: Pagination using $facet
+        {
+            $facet: {
+                metadata: [{ $count: "total" }],
+                data: [
+                    { $skip: (Number(page) - 1) * Number(limit) },
+                    { $limit: Number(limit) },
+                ],
+            },
+        },
+    ];
+
+    const result = await StoreVisit.aggregate(pipeline).exec();
+
+    const storeVisits = result[0]?.data || [];
+    const totalResults = result[0]?.metadata[0]?.total || 0;
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                storeVisitList: storeVisits,
+                totalResults,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(totalResults / Number(limit)),
+            },
+            "Store visits retrieved successfully"
+        )
+    );
+});
+
+export const getCustomerPotentialReport = asyncHandler(async (req: Request, res: Response) => {
+    const {
+        month,
+        year,
+        page = 1,
+        limit = 10,
+        search,
+        state,
+        city,
+        salePerson
+    }: any = req.query;
+
+    // Validate if month and year are provided
+    if (!month || !year) {
+        return res.status(400).json(new ApiResponse(400, {}, 'Month and Year are required'));
+    }
+
+    // Ensure valid month and year
+    if (isNaN(Number(month)) || isNaN(Number(year))) {
+        return res.status(400).json(new ApiResponse(400, {}, 'Invalid month or year'));
+    }
+
+    // Get the first and last date of the month in UTC format
+    const startDate = new Date(Date.UTC(Number(year), Number(month) - 1, 1)); // First day of the month
+    const endDate = new Date(Date.UTC(Number(year), Number(month), 0, 23, 59, 59, 999)); // Last day of the month
+
+    // Match conditions for filtering orders by createdAt and orderStatus
+    const matchConditions: any = {
+        createdAt: { $gte: startDate, $lte: endDate },
+        orderStatus: { $nin: ["Cancelled", "Returned"] }
+    };
+
+    // User match conditions for search, state, city, salePerson
+    const userMatchConditions: any = {};
+
+    // Handle search query
+    if (search) {
+        userMatchConditions.$or = [
+            { "userInfo.firstName": { $regex: search, $options: "i" } },  // Add firstName search (case-insensitive)
+            { "userInfo.email": { $regex: search, $options: "i" } },  // Add firstName search (case-insensitive)
+            { "userInfo.phone": { $regex: search, $options: "i" } },  // Add firstName search (case-insensitive)
+            { "userInfo.id": { $regex: search, $options: "i" } }  // Add firstName search (case-insensitive)
+        ];
+    }
+
+    // Handle state filter
+    if (state) {
+        userMatchConditions["userInfo.billingAddress.state"] = new mongoose.Types.ObjectId(state);; // Exact match for state
+    }
+
+    // Handle city filter
+    if (city) {
+        userMatchConditions["userInfo.billingAddress.city"] = new mongoose.Types.ObjectId(city);;   // Exact match for city
+    }
+
+    // Handle salePerson filter
+    if (salePerson) {
+        userMatchConditions["userInfo.salePerson"] = new mongoose.Types.ObjectId(salePerson);;   // ; // Exact match for salePerson
+    }
+
+    console.log(userMatchConditions, 'userMatchConditions')
+
+    // Aggregation pipeline to generate customer potential report
+    const aggregationPipeline = [
+        { $match: matchConditions }, // Filter orders by date and status
+        {
+            $group: {
+                _id: "$user", // Group by user
+                totalPurchaseAmount: { $sum: "$finalTotal" },
+                orderCount: { $sum: 1 }
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "_id",
+                foreignField: "_id",
+                as: "userInfo"
+            }
+        },
+        { $unwind: "$userInfo" },
+
+        // Apply user match conditions (search, state, city, salePerson filters)
+        { $match: userMatchConditions },
+
+        // Lookup city information
+        {
+            $lookup: {
+                from: "cities",
+                localField: "userInfo.billingAddress.city",
+                foreignField: "_id",
+                as: "cityInfo"
+            }
+        },
+        { $unwind: { path: "$cityInfo", preserveNullAndEmptyArrays: true } },
+        
+        // Lookup state information
+        {
+            $lookup: {
+                from: "states",
+                localField: "userInfo.billingAddress.state",
+                foreignField: "_id",
+                as: "stateInfo"
+            }
+        },
+        { $unwind: { path: "$stateInfo", preserveNullAndEmptyArrays: true } },
+        
+        // Lookup salePerson information
+        {
+            $lookup: {
+                from: "users",
+                localField: "userInfo.salePerson",
+                foreignField: "_id",
+                as: "salePersonInfo"
+            }
+        },
+        { $unwind: { path: "$salePersonInfo", preserveNullAndEmptyArrays: true } },
+        
+        {
+            $project: {
+                _id: 0,
+                userId: "$userInfo._id",
+                userName: "$userInfo.fullName",
+                email: "$userInfo.email",
+                phone: "$userInfo.phone",
+                state: "$stateInfo.name",
+                city: "$cityInfo.name",
+                salePerson: "$salePersonInfo.fullName",
+                salePersonEmail: "$salePersonInfo.email",
+                salePersonPhone: "$salePersonInfo.phone",
+                potential: "$userInfo.potential",
+                businessName: "$userInfo.businessName",
+                id: "$userInfo.id",
+                totalPurchaseAmount: 1,
+                orderCount: 1,
+                completionPercentage: {
+                    $cond: {
+                        if: { $eq: ["$userInfo.potential", 0] },
+                        then: 0,
+                        else: {
+                            $round: [
+                                { $multiply: [{ $divide: ["$totalPurchaseAmount", "$userInfo.potential"] }, 100] },
+                                2
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        { $sort: { totalPurchaseAmount: -1 } },
+        { $skip: (Number(page) - 1) * Number(limit) },
+        { $limit: Number(limit) }
+    ];
+
+    // Total count query to determine totalResults and totalPages
+    const totalCountQuery = [
+        { $match: matchConditions },
+        { $group: { _id: "$user" } },
+        {
+            $lookup: {
+                from: "users",
+                localField: "_id",
+                foreignField: "_id",
+                as: "userInfo"
+            }
+        },
+        { $unwind: "$userInfo" },
+        { $match: userMatchConditions },
+        { $count: "totalResults" }
+    ];
+
+    // Execute both the report aggregation and total count query in parallel
+    try {
+        const [customerReport, totalCountResult] = await Promise.all([
+            Order.aggregate(aggregationPipeline),
+            Order.aggregate(totalCountQuery)
+        ]);
+
+        const totalResults = totalCountResult.length > 0 ? totalCountResult[0].totalResults : 0;
+        const totalPages = Math.ceil(totalResults / limit);
+
+        const monthName = new Date(Date.UTC(Number(year), Number(month) - 1, 1)).toLocaleString('default', { month: 'short', year: 'numeric' });
+
+        return res.status(200).json(
+            new ApiResponse(200, {
+                report: customerReport,
+                monthYear: monthName,
+                pagination: {
+                    page: Number(page),
+                    limit: Number(limit),
+                    totalResults,
+                    totalPages
+                }
+            }, 'Customer potential report generated successfully')
+        );
+    } catch (error) {
+        console.error('Error generating report:', error);
+        return res.status(500).json(new ApiResponse(500, {}, 'Error generating customer potential report'));
+    }
 });
