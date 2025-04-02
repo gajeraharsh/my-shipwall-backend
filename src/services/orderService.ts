@@ -9,6 +9,8 @@ import moment from "moment";
 import GeneralSettingModel from "../models/generalSetting";
 import ReturnOrder from "../models/ReturnOrder";
 import { uploadFileToS3 } from "./fileUploads3Service";
+import IncentiveModel from "../models/Incentive";
+import IncentivePayoutModel from "../models/IncentivePayout";
 
 
 export const createOrderService = async (userId: string) => {
@@ -502,12 +504,38 @@ export const getOrderByIdService = async (orderId: string) => {
 
 
 
+const getIncentivePercentage = async (salePerson: any, finalTotal: number) => {
+    // Check salesperson-specific incentive
+    let incentive = await IncentiveModel.findOne({
+        user: salePerson,
+        minAmount: { $lte: finalTotal },
+        maxAmount: { $gte: finalTotal }
+    });
+
+    // If no salesperson-specific incentive, check global incentive
+    if (!incentive) {
+        incentive = await IncentiveModel.findOne({
+            minAmount: { $lte: finalTotal },
+            maxAmount: { $gte: finalTotal }
+        });
+    }
+
+    // Return percentage if incentive found, otherwise return false
+    return incentive ? incentive.incentivePercentage : false;
+};
+
+
+
+
 export const updateOrderStatusService = async (
     orderId: string,
     newStatus: any,
     changedBy: string
 ) => {
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId).populate({
+        path: "user",
+        select: "_id id salePerson",
+    })
     if (!order) {
         throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
     }
@@ -528,8 +556,33 @@ export const updateOrderStatusService = async (
         throw new ApiError(httpStatus.BAD_REQUEST, "Order is delivered you can not change it again.")
 
     }
+
     order.orderStatus = newStatus;
 
+
+    
+    // Usage
+    if (newStatus === 'delevered') {
+        const salePerson = order?.user?.salePerson;
+        const finalTotal = order.finalTotal;
+        
+        if (salePerson) {
+            const incentivePercentage = await getIncentivePercentage(salePerson, finalTotal);
+
+            if (incentivePercentage !== false) {
+                const incentiveAmount = Number(((incentivePercentage / 100) * finalTotal).toFixed(2));
+
+                await IncentivePayoutModel.create({
+                    salePerson: salePerson,
+                    user: order.user._id,
+                    order: order?._id,
+                    totalOrderAmount: finalTotal,
+                    percentageIncentive: incentivePercentage,
+                    totalIncentiveAmount: incentiveAmount
+                })
+            }
+        }
+    }
 
     await order.save();
 

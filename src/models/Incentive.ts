@@ -8,6 +8,7 @@ interface IIncentive extends Document {
     incentivePercentage: number;
     createdAt?: Date;
     updatedAt?: Date;
+    user: any;
 }
 
 const IncentiveSchema = new Schema<IIncentive>({
@@ -23,6 +24,10 @@ const IncentiveSchema = new Schema<IIncentive>({
         type: Number,
         required: true,
     },
+    user: {
+        type: mongoose.Types.ObjectId,
+        ref: 'User'
+    }
 }, {
     timestamps: true,
 });

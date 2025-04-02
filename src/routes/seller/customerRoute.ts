@@ -12,6 +12,7 @@ import {
 } from '../../controllers/seller/customerController';
 import { verifyJWT } from '../../middlewares/auth.middleware';
 import upload from '../../middlewares/upload';
+import { getIncentivePayouts, getIncentivePayoutsReport } from '../../controllers/seller/IncentivePayoutController';
 
 const router = express.Router();
 
@@ -19,6 +20,9 @@ router.route("/").post(createCustomer);
 router.route("/").get(verifyJWT, getCustomers);
 router.route("/store-visit").get(verifyJWT, getStoreVisits);
 router.route("/potential-report").get(verifyJWT, getCustomerPotentialReport);
+router.route("/incentive-payouts").get(verifyJWT, getIncentivePayouts);
+router.route("/incentive-report").get(verifyJWT, getIncentivePayoutsReport);
+
 
 
 router.route('/orders').get(verifyJWT, getCustomerOrders)
