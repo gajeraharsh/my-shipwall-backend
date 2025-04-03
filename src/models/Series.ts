@@ -42,6 +42,18 @@ const seriesSchema = new Schema<ISeries, SeriesModel>({
     enum: ['Draft', 'Published'],
     default: "Draft",
   },
+  position: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  gallery: [
+    {
+      url: { type: String, required: true },
+      position: { type: Number, required: true },
+    },
+  ],
+
 }, {
   timestamps: true,
 });
@@ -49,6 +61,6 @@ const seriesSchema = new Schema<ISeries, SeriesModel>({
 seriesSchema.plugin(paginate);
 
 
-const Series: Model<ISeries> = mongoose.model<ISeries & Document>("Series", seriesSchema);
+const Series = mongoose.model<ISeries, any>("Series", seriesSchema);
 
 export default Series;

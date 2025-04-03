@@ -19,6 +19,11 @@ const brandSchema = new Schema<IBrand, BrandModel>({
   displayHome: {
     type: Boolean,
     default: false,
+  },
+  position: {
+    type: Number,
+    required: true,
+    default: 0,
   }
 }, {
   timestamps: true,

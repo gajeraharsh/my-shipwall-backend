@@ -7,6 +7,7 @@ export interface IBrand extends Document {
   metaDescription: string;
   metaKeywords: string;
   displayHome: boolean;
+  position: number;
 }
 
 export interface IBrandBody {

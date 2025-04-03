@@ -103,4 +103,9 @@ const getProductValidation = Joi.object({
   id: Joi.string().required().messages({ 'string.base': 'Product ID must be a string.', 'any.required': 'Product ID is required.' }),
 });
 
-export { createProductValidation, updateProductValidation, deleteProductValidation, getProductValidation };
+const updateProducrtOrderValidation = Joi.object({
+  ids: Joi.array().required(),
+});
+
+
+export { createProductValidation, updateProductValidation, deleteProductValidation, getProductValidation, updateProducrtOrderValidation };

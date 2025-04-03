@@ -1,5 +1,11 @@
 import { Document, Types, Model } from 'mongoose';
 
+interface IGalleryImage {
+  url: string;
+  position: number;
+}
+
+
 export interface ISeries extends Document {
   brand: Types.ObjectId;
   category: Types.ObjectId;
@@ -11,6 +17,8 @@ export interface ISeries extends Document {
   thumbImage: string;
   thumbImageUrl?: string
   status?: string;
+  position: number;
+  gallery: IGalleryImage[];
 }
 
 export interface ISeriesbody {

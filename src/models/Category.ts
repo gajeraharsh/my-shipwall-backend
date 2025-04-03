@@ -41,13 +41,19 @@ const categorySchema = new Schema<ICategory, CategoryModel>({
   displayHome: {
     type: Boolean,
     default: false,
+  },
+  position: {
+    type: Number,
+    required: true,
+    default: 0,
   }
+
 }, {
   timestamps: true,
 });
 
 categorySchema.plugin(paginate);
 
-const Category = mongoose.model<ICategory>('Category', categorySchema);
+const Category = mongoose.model<ICategory, any>('Category', categorySchema);
 
 export default Category;

@@ -8,14 +8,14 @@ const fileFilter = (
   file: Express.Multer.File, 
   cb: FileFilterCallback
 ) => {
-  const fileTypes = /jpeg|jpg|png|gif|mp4|mkv|avi|pdf/;
+  const fileTypes = /jpeg|jpg|png|gif|mp4|mkv|avi|pdf|doc|docx|xlsx/;
   const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = fileTypes.test(file.mimetype);
 
   if (extname && mimetype) {
     cb(null, true);
   } else {
-    cb(new Error('Only images and video files are allowed!'));
+    cb(new Error('Only images and video and doc file are allowed files are allowed!'));
   }
 };
 
