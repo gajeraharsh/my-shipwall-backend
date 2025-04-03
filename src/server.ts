@@ -4,6 +4,14 @@ import app from './app';
 
 const PORT = process.env.PORT || 5000;
 
+app.get('/api/test', (req, res) => {
+  res.json({
+    message: 'Hello World',
+    status: 'success',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Only listen to port if running directly (not in Vercel)
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
