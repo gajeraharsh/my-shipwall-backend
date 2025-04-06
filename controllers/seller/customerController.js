@@ -13,7 +13,6 @@ const StoreVisit = require("../../models/StoreVisit");
 // `Types` is a named export in Mongoose, so it should be destructured properly
 const { Types } = mongoose;
 
-
 const createCustomer = asyncHandler(async (req, res) => {
   const { error, value } = userValidationSchema.validate(req?.body, {
     abortEarly: false,
@@ -720,6 +719,119 @@ const getCustomerPotentialReport = asyncHandler(async (req, res) => {
   }
 });
 
+const createUserByAdmin = asyncHandler(async (req, res) => {
+  const { error, value } = userValidationSchema.validate(req?.body, {
+    abortEarly: false,
+  });
+
+  if (error) {
+    console.log(error.details);
+
+    throw new ApiError(400, "Validation failed.", error?.details);
+  }
+
+  const { phone, userName, logginId, role, email } = value;
+
+  const query = [];
+
+  if (phone) query.push({ phone, role: "user" });
+  if (email) query.push({ email, role: "user" });
+
+  const existedUser = await User.findOne({
+    $or: query,
+  });
+
+  if (existedUser) {
+    throw new ApiError(409, "User already exist with email or phone number.");
+  }
+
+  const user = await User.create(value);
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong while registering the user");
+  }
+
+  return res
+    .status(201)
+    .json(new ApiResponse(200, createdUser, "User created successfully."));
+});
+
+const updateSaleMember = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const existingUser = await User.findById(userId);
+
+  if (!existingUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const {
+    userName,
+    fullName,
+    logginId,
+    email,
+    phone,
+    role,
+    dob,
+    lenguage,
+    gender,
+    altContactNumber,
+  } = req.body;
+
+  const files = req.files;
+
+  let profileImageUrl = null;
+
+  // Handle file uploads
+  if (files?.profileImage?.[0]) {
+    profileImageUrl = await uploadFileToS3(
+      files.profileImage[0],
+      req.user?._id
+    );
+  }
+
+  const updateData = {};
+
+  if (userName) updateData.userName = userName;
+  if (fullName) updateData.fullName = fullName;
+  if (logginId) updateData.logginId = logginId;
+  if (email) updateData.email = email;
+  if (phone) updateData.phone = phone;
+  if (profileImageUrl) updateData.profileImage = profileImageUrl;
+  if (role) updateData.role = role;
+  if (dob) updateData.dob = dob;
+  if (lenguage) updateData.lenguage = lenguage;
+  if (gender) updateData.gender = gender;
+  if (altContactNumber) updateData.altContactNumber;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedUser) {
+    throw new ApiError(500, "Something went wrong while updating the user");
+  }
+
+  const userWithoutSensitiveInfo = await User.findById(updatedUser._id).select(
+    "-password -refreshToken"
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        userWithoutSensitiveInfo,
+        "User updated successfully"
+      )
+    );
+});
+
 module.exports = {
   createCustomer,
   getCustomers,
@@ -730,4 +842,5 @@ module.exports = {
   assignSaleUser,
   getStoreVisits,
   getCustomerPotentialReport,
+  createUserByAdmin,
 };

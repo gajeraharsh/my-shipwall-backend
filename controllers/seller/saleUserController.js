@@ -1,12 +1,14 @@
 const User = require("../../models/User");
-const { userValidationSchema } = require("../../validations/user");
+const {
+  userValidationSchema,
+  saleUserCreateValidation,
+} = require("../../validations/user");
 const { asyncHandler } = require("../../utils/asyncHandler");
 const ApiResponse = require("../../utils/apiResponse");
 const ApiError = require("../../utils/apiError");
 const { uploadFileToS3 } = require("../../services/fileUploads3Service");
 const Order = require("../../models/Order");
 const mongoose = require("mongoose");
-
 
 const createUser = asyncHandler(async (req, res) => {
   const { error, value } = userValidationSchema.validate(req?.body, {
@@ -28,7 +30,57 @@ const createUser = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User already exist.");
   }
 
-  const user = await User.create(value);
+  const user = await User.create({
+    ...value,
+    saleUserStatus: "Active",
+  });
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong while registering the user");
+  }
+
+  return res
+    .status(201)
+    .json(new ApiResponse(200, createdUser, "User registered Successfully"));
+});
+
+const createFormUser = asyncHandler(async (req, res) => {
+  
+  const { error, value } = saleUserCreateValidation.validate(req?.body, {
+    abortEarly: false,
+  });
+
+  if (error) {
+    console.log(error.details);
+
+    throw new ApiError(400, "Validation failed.", error?.details);
+  }
+  const files = req.files;
+
+  let saleUserDocument;
+
+  // Handle file uploads
+  if (files?.saleUserDocument?.[0]) {
+    saleUserDocument = await uploadFileToS3(files.saleUserDocument[0]);
+  }
+
+  const existedUser = await User.findOne({
+    userName: req?.body?.userName,
+    role: req?.body?.role,
+  });
+
+  if (existedUser) {
+    throw new ApiError(409, "User already exist.");
+  }
+
+  const user = await User.create({
+    ...value,
+    saleUserDocument: saleUserDocument,
+    saleUserStatus: "Pending",
+  });
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -52,14 +104,24 @@ const getUsers = asyncHandler(async (req, res) => {
     days,
     state,
     city,
+    saleUserStatus,
   } = req.query;
 
   let where = {
     role: "sale_member",
+    saleUserStatus: saleUserStatus,
   };
 
-  // Search by userName (case-insensitive)
+  if (!saleUserStatus) {
+    where.saleUserStatus = { $in: ["Active", "Blocked"] };
+  }
+
+  if (saleUserStatus == "reqUser") {
+    where.saleUserStatus = { $in: ["Pending", "Rejected"] };
+  }
+
   if (search) {
+    // Search by userName (case-insensitive)
     where.userName = { $regex: search, $options: "i" };
     where.fullName = { $regex: search, $options: "i" };
     where.email = { $regex: search, $options: "i" };
@@ -200,7 +262,7 @@ const getSaleUserDetailsById = asyncHandler(async (req, res) => {
     {
       $match: {
         "userDetails.salePerson": new mongoose.Types.ObjectId(userId),
-        orderStatus: { $ne: "delivered" }, // or use $nin if there are multiple statuses to exclude
+        orderStatus: { $ne: "delevered" }, // or use $nin if there are multiple statuses to exclude
       },
     },
     {
@@ -382,4 +444,5 @@ module.exports = {
   updateUser,
   deleteUserById,
   getSaleUserDropdown,
+  createFormUser,
 };

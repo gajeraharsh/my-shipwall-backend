@@ -7,6 +7,7 @@ const {
   updateUser,
   getSaleUserDropdown,
   getSaleUserDetailsById,
+  createFormUser,
 } = require("../../controllers/seller/saleUserController");
 
 const { verifyJWT } = require("../../middlewares/auth.middleware");
@@ -20,6 +21,19 @@ const {
 const router = express.Router();
 
 router.route("/").post(createUser);
+router.route("/create-form").post(
+  upload.fields([{ name: "saleUserDocument", maxCount: 1 }]),
+  (req, res, next) => {
+    if (req.files) {
+      if (req.files.saleUserDocument) {
+        req.body.saleUserDocument = req.files.saleUserDocument[0].originalname;
+      }
+    }
+    next();
+  },
+  createFormUser
+);
+
 router.route("/").get(verifyJWT, getUsers);
 router.route("/dropdown").get(verifyJWT, getSaleUserDropdown);
 router.route("/orders").get(verifyJWT, getOrderBySalePerson);
