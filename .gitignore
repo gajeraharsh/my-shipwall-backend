@@ -2,7 +2,6 @@
 /node_modules/
 
 # TypeScript
-/dist/
 /*.tsbuildinfo
 
 # Environment variables
@@ -28,7 +27,3 @@ Thumbs.db
 # Build output
 /build/
 *.tgz
-
-# Optional: Ignore any compiled files, such as JavaScript files (if you want to track TypeScript source files only)
-*.js
-*.js.map
