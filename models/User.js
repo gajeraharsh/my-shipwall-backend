@@ -35,6 +35,10 @@ const userSchema = new Schema(
     gender: {
       type: String,
     },
+    dob: {
+      type: Date,
+      required: true,
+    },
     lenguage: {
       type: String,
     },
@@ -190,6 +194,18 @@ const userSchema = new Schema(
     },
     resetPasswordTokenExpiresAt: {
       type: Date,
+    },
+
+    typeDocument: {
+      type: String,
+    },
+    saleUserDocument: {
+      type: String,
+    },
+    saleUserStatus: {
+      type: String,
+      default: "Pending",
+      enum: ["Active", "Pending", "Rejected", "Blocked"],
     },
   },
   {

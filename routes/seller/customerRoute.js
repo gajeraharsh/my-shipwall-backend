@@ -9,6 +9,7 @@ const {
   getCustomers,
   getStoreVisits,
   updateCustomer,
+  createUserByAdmin,
 } = require("../../controllers/seller/customerController");
 
 const { verifyJWT } = require("../../middlewares/auth.middleware");
@@ -22,6 +23,7 @@ const {
 const router = express.Router();
 
 router.route("/").post(createCustomer);
+router.route("/create-user-by-admin").post(verifyJWT, createUserByAdmin);
 router.route("/").get(verifyJWT, getCustomers);
 router.route("/store-visit").get(verifyJWT, getStoreVisits);
 router.route("/potential-report").get(verifyJWT, getCustomerPotentialReport);
