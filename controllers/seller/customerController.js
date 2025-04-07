@@ -5,6 +5,7 @@ const ApiResponse = require("../../utils/apiResponse");
 const ApiError = require("../../utils/apiError");
 const { uploadFileToS3 } = require("../../services/fileUploads3Service");
 const Order = require("../../models/Order");
+const IncentivePayout = require('../../models/IncentivePayout')
 const { status: httpStatus } = require("http-status");
 
 const mongoose = require("mongoose");
@@ -832,6 +833,106 @@ const updateSaleMember = asyncHandler(async (req, res) => {
     );
 });
 
+const dashboardMatrix = asyncHandler(async (req, res) => {
+  const saleUserId = req.user._id;
+  console.log(saleUserId,'saleUserId')
+
+  // Total customers assigned to current salesperson
+  const totalCustomers = await User.countDocuments({
+    salePerson: saleUserId,
+  });
+
+  // Total customers without a salesperson assigned
+  const totalUnassignedCustomers = await User.countDocuments({
+    $or: [{ salePerson: { $exists: false } }, { salePerson: null }],
+  });
+
+  // Total orders for current salesperson
+  const orderAggregate = await Order.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "user",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    { $unwind: "$user" },
+    {
+      $match: {
+        "user.salePerson": new mongoose.Types.ObjectId(saleUserId),
+      },
+    },
+    {
+      $count: "totalOrders",
+    },
+  ]);
+
+  const totalOrders = orderAggregate[0]?.totalOrders || 0;
+
+  // --- Incentive calculations ---
+
+  // Total incentive earned by salesperson
+  const totalIncentive = await IncentivePayout.aggregate([
+    {
+      $match: {
+        salePerson: new mongoose.Types.ObjectId(saleUserId),
+        // status: "Settled", 
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: "$totalIncentiveAmount" },
+      },
+    },
+  ]);
+
+  const totalIncentiveAmount = totalIncentive[0]?.total || 0;
+
+  // Previous month incentive
+  const now = new Date();
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    0,
+    23,
+    59,
+    59
+  );
+
+  const previousMonthIncentive = await IncentivePayout.aggregate([
+    {
+      $match: {
+        salePerson: new mongoose.Types.ObjectId(saleUserId),
+        // status: "Settled",
+        createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: "$totalIncentiveAmount" },
+      },
+    },
+  ]);
+
+  const lastMonthIncentive = previousMonthIncentive[0]?.total || 0;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      totalCustomers,
+      totalUnassignedCustomers,
+      totalOrders,
+      totalIncentiveAmount,
+      lastMonthIncentive,
+    },
+  });
+
+});
+
 module.exports = {
   createCustomer,
   getCustomers,
@@ -843,4 +944,5 @@ module.exports = {
   getStoreVisits,
   getCustomerPotentialReport,
   createUserByAdmin,
+  dashboardMatrix,
 };
