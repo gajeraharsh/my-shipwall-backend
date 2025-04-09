@@ -145,7 +145,7 @@ const fetchOrders = async (req) => {
           select: "_id returnStatus refundStatus createdAt",
         },
       ],
-      sort: { createdAt: -1 },
+      sortBy: "createdAt:desc", 
     });
 
     return orders;

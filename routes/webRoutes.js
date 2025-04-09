@@ -157,6 +157,7 @@ router.get("/rejection-cart", verifyJWT, getCartRjection);
 router.get("/order", verifyJWT, getOrders);
 router.get("/order/:orderId", verifyJWT, getOrderbyId);
 router.post("/order/create", verifyJWT, createOrder);
+router.get("/invoice/:orderId", getOrderbyId);
 
 router.get("/rejection-orders", verifyJWT, getRejectionOrders);
 router.get("/rejection-orders/:orderId", verifyJWT, getRejectionOrderbyId);
