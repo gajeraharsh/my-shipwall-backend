@@ -4,7 +4,7 @@ const ApiResponse = require("../../utils/apiResponse");
 const ApiError = require("../../utils/apiError");
 const { uploadFileToS3 } = require("../../services/fileUploads3Service");
 const Joi = require("joi");
-
+const Order = require("../../models/Order");
 
 const userValidationSchema = Joi.object({
   userName: Joi.string().when("role", {
@@ -322,6 +322,229 @@ const getAdminUsersDropdown = asyncHandler(async (req, res) => {
     );
 });
 
+const adminDashboardMatrix = asyncHandler(async (req, res) => {
+  const saleMemberCount = await User.countDocuments({ role: "sale_member" });
+
+  const saleReqCount = await User.countDocuments({
+    role: "sale_member",
+    saleUserStatus: { $in: ["Pending"] },
+  });
+
+  const totalCustomers = await User.countDocuments({
+    role: "user",
+  });
+
+  const customerByState = await User.aggregate([
+    {
+      $match: {
+        role: "user",
+        "deliveryAddress.state": { $ne: null }, // skip users with no state info
+      },
+    },
+    {
+      $group: {
+        _id: "$deliveryAddress.state",
+        totalCustomers: { $sum: 1 },
+      },
+    },
+    {
+      $lookup: {
+        from: "states",
+        localField: "_id",
+        foreignField: "_id",
+        as: "stateDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$stateDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        stateId: "$_id",
+        stateName: "$stateDetails.name",
+        totalCustomers: 1,
+        _id: 0,
+      },
+    },
+  ]);
+
+  const matrix = {
+    saleMemberCount,
+    saleReqCount,
+    totalCustomers,
+    customerByState,
+  };
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, matrix, "admin matrix successfully"));
+});
+
+const getTopSellingProducts = async (req, res) => {
+  try {
+    const { filter } = req.query;
+
+    // Calculate the date range based on filter
+    let startDate, endDate;
+    const now = new Date();
+
+    switch (filter) {
+      case "1": // Today
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        endDate = new Date(now.setHours(23, 59, 59, 999));
+        break;
+      case "2": // Yesterday
+        const yesterday = new Date(now.setDate(now.getDate() - 1));
+        startDate = new Date(yesterday.setHours(0, 0, 0, 0));
+        endDate = new Date(yesterday.setHours(23, 59, 59, 999));
+        break;
+      case "3": // Last 7 days
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+        endDate = new Date();
+        break;
+      case "4": // Last 30 days
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+        endDate = new Date();
+        break;
+      default: // No filter
+        startDate = null;
+        endDate = null;
+    }
+
+    // Match orders in the date range
+    const matchStage = {
+      ...(startDate &&
+        endDate && {
+          createdAt: {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        }),
+    };
+
+    const topProducts = await Order.aggregate([
+      { $match: matchStage },
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: "$products.product",
+          totalAmount: { $sum: "$products.subtotal" },
+          totalOrders: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "_id",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      { $unwind: "$productInfo" },
+      {
+        $project: {
+          _id: 0,
+          productId: "$_id",
+          productName: "$productInfo.productName",
+          bodyColor:"$productInfo.bodyColor",
+          modelNo:"$productInfo.modelNo",
+          watt:"$productInfo.watt",
+          totalAmount: 1,
+          totalOrders: 1,
+        },
+      },
+      { $sort: { totalAmount: -1 } },
+      { $limit: 10 },
+    ]);
+
+    res.status(200).json({ success: true, data: topProducts });
+  } catch (err) {
+    console.error("Error in getTopSellingProducts:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+const getTopSalesPersons = async (req, res) => {
+  try {
+    const result = await Order.aggregate([
+      // 1. Join with users to get customer info
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      { $unwind: "$customer" },
+
+      // 2. Filter orders where customer has a salePerson
+      {
+        $match: {
+          "customer.salePerson": { $ne: null },
+        },
+      },
+
+      // 3. Group by salePerson and calculate total and count
+      {
+        $group: {
+          _id: "$customer.salePerson",
+          totalOrderAmount: {
+            $sum: { $ifNull: ["$finalTotal", 0] },
+          },
+          orderCount: { $sum: 1 },
+        },
+      },
+
+      // 4. Sort descending by totalOrderAmount
+      { $sort: { totalOrderAmount: -1 } },
+
+      // 5. Limit to top 10
+      { $limit: 10 },
+
+      // 6. Get salePerson info
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "salePersonInfo",
+        },
+      },
+      { $unwind: "$salePersonInfo" },
+
+      // 7. Format output
+      {
+        $project: {
+          salePersonId: "$_id",
+          salePersonName: "$salePersonInfo.fullName",
+          totalOrderAmount: 1,
+          orderCount: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error in getTopSalesPersons:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+
 module.exports = {
   createAdminUser,
   getAdminUsers,
@@ -329,4 +552,8 @@ module.exports = {
   updateAdminUser,
   deleteAdminUserById,
   getAdminUsersDropdown,
+  adminDashboardMatrix,
+  getTopSellingProducts,
+  getTopSalesPersons,
+  getTopSalesPersons
 };

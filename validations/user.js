@@ -139,13 +139,7 @@ const userValidationSchema = Joi.object({
   salePerson: Joi.any(),
   billingAddress: Joi.any(),
 
-  typeDocument: Joi.string().when("role", {
-    is: Joi.valid("sale_member"),
-    then: Joi.required().messages({
-      "any.required": "note is required for sale_member role.",
-    }),
-    otherwise: Joi.optional(),
-  }),
+  typeDocument: Joi.string().optional(),
   saleUserDocument: Joi.any().optional(),
 });
 
@@ -265,7 +259,7 @@ const saleUserCreateValidation = Joi.object({
     otherwise: Joi.optional(),
   }),
   saleUserDocument: Joi.any().optional(),
-  dob: Joi.string().required(),
+  dob: Joi.string().optional(),
 });
 
 module.exports = {

@@ -80,6 +80,12 @@ const createOrderReturnService = async (userId, req) => {
     order: cart?.order,
   });
 
+  newOrder.activities.push({
+    status: "Initiated",
+    note: "Return order Initiated",
+    timestamp: new Date(),
+  });
+
   await newOrder.save();
 
   // for (const item of cart.products) {
@@ -113,6 +119,7 @@ const fetchReturnOrders = async (req) => {
       {
         page,
         limit,
+        sortBy: "createdAt:desc",
       }
     );
 
@@ -132,40 +139,128 @@ const fetchReturnOrders = async (req) => {
 
 const fetchAllReturnOrders = async (req) => {
   try {
-    const page = req?.query?.page;
-    const limit = req?.query?.limit;
-    const query = req?.query?.search || "";
+    const page = parseInt(req?.query?.page) || 1;
+    const limit = parseInt(req?.query?.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    const orders = await ReturnOrder.paginate(
+    const {
+      search = "",
+      returnStatus = "",
+      startDate,
+      endDate,
+      days,
+    } = req.query;
+
+    const matchStage = {};
+
+    // Exact return status match
+    if (returnStatus) {
+      matchStage.returnStatus = returnStatus;
+    }
+
+    if (days) {
+      const today = new Date();
+      let startDateForFilter = new Date(today.setHours(0, 0, 0, 0)); // Start of today
+      
+      if (parseInt(days) === 0) {
+        // Today only
+        const endOfToday = new Date(startDateForFilter);
+        endOfToday.setHours(23, 59, 59, 999);
+        matchStage.createdAt = { $gte: startDateForFilter, $lte: endOfToday };
+      } else if (parseInt(days) === 1) {
+        // Yesterday only
+        startDateForFilter.setDate(today.getDate() - 1);
+        const endOfYesterday = new Date(startDateForFilter);
+        endOfYesterday.setHours(23, 59, 59, 999);
+        matchStage.createdAt = { $gte: startDateForFilter, $lte: endOfYesterday };
+      } else {
+        // Last 'n' days
+        startDateForFilter.setDate(today.getDate() - parseInt(days));
+        matchStage.createdAt = { $gte: startDateForFilter, $lte: new Date() };
+      }
+    } else if (startDate && endDate) {
+      matchStage.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    } else if (startDate) {
+      matchStage.createdAt = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      matchStage.createdAt = { $lte: new Date(endDate) };
+    }
+        
+    const pipeline = [
+      { $match: matchStage },
       {
-        returnStatus: { $regex: query, $options: "i" },
-        id: { $regex: query, $options: "i" },
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
       },
+      { $unwind: "$user" },
+    ];
+
+    // Search logic
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { id: { $regex: search, $options: "i" } },
+            { "user.fullName": { $regex: search, $options: "i" } },
+            { "user.phone": { $regex: search, $options: "i" } },
+            { "user.id": { $regex: search, $options: "i" } },
+
+          ],
+        },
+      });
+    }
+
+    // Count total documents
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await ReturnOrder.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Paginate and sort
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
       {
-        page,
-        limit,
-        populate: [
-          {
-            path: "user",
-            select: "fullName id phone",
+        $project: {
+          _id: 1,
+          id: 1,
+          returnStatus: 1,
+          createdAt: 1,
+          user: {
+            _id: 1,
+            id: 1, // Include the `id` from `user`
+            fullName: 1,
+            phone: 1,
           },
-        ],
+        },
       }
     );
 
-    if (!orders || orders.length === 0) {
-      throw new ApiError(httpStatus.NOT_FOUND, "No orders found");
-    }
+    const docs = await ReturnOrder.aggregate(pipeline);
 
-    return orders;
+
+    return {
+      docs,
+      totalDocs: total,
+      limit,
+      page,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page * limit < total,
+      hasPrevPage: page > 1,
+    };
   } catch (err) {
-    console.log(err);
+    console.error(err);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       "Error retrieving orders"
     );
   }
 };
+
 
 const fetchReturnOrderById = async (orderId) => {
   try {
@@ -336,11 +431,18 @@ const updateReturnOrderStatusService = async (
     "Received",
     "Mismatch_Correction",
     "Validated",
-    // "Approved_Credited"
+    "Cancelled",
   ];
 
   if (!validStatuses.includes(newStatus)) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Invalid order status");
+  }
+
+  if (order?.returnStatus == "Cancelled") {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "status is cancelled you can not change status."
+    );
   }
 
   console.log(order?.returnStatus, "order?.returnStatus");
@@ -358,7 +460,7 @@ const updateReturnOrderStatusService = async (
     Received: "Return items have been received at warehouse.",
     Mismatch_Correction: "Mismatch identified, correction in progress.",
     Validated: "Return order has been validated.",
-    // Approved_Credited: "Rejection order approved and credit issued.",
+    Cancelled: "Rejection order is cancelled.",
   };
 
   const note = statusNotes[newStatus] || "";
@@ -389,6 +491,11 @@ const createReturnForRejectionOrderService = async ({
   const returnOrder = await ReturnOrder.findById(orderId);
   if (!returnOrder) {
     throw new ApiError(httpStatus.NOT_FOUND, "Return order not found");
+  }
+
+  if (returnOrder?.returnStatus == "Cancelled") {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Return order is cancelled");
+    return;
   }
 
   const existingRefund = await Refund.findOne({

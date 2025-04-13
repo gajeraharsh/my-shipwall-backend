@@ -71,6 +71,7 @@ const getCustomers = asyncHandler(async (req, res) => {
       { fullName: { $regex: search, $options: "i" } },
       { email: { $regex: search, $options: "i" } },
       { phone: { $regex: search, $options: "i" } },
+      { id: { $regex: search, $options: "i" } },
     ];
     andConditions.push({ $or: searchOrConditions });
   }
@@ -107,19 +108,17 @@ const getCustomers = asyncHandler(async (req, res) => {
 
   // State filter
   if (state) {
-    andConditions.push({ "currentAddress.state": state });
+    andConditions.push({ "deliveryAddress.state": state });
   }
 
   // City filter
   if (city) {
-    andConditions.push({ "currentAddress.city": city });
+    andConditions.push({ "deliveryAddress.city": city });
   }
 
   // Final query object
   const where =
     andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
-
-  console.log("Query Filters:", JSON.stringify(where, null, 2));
 
   // @ts-ignore
   const users = await User.paginate(where, {
