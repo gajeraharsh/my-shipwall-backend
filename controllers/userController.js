@@ -444,6 +444,7 @@ const getUsersV2 = asyncHandler(async (req, res) => {
       { fullName: { $regex: search, $options: "i" } },
       { email: { $regex: search, $options: "i" } },
       { phone: { $regex: search, $options: "i" } },
+      { id: { $regex: search, $options: "i" } },
     ];
   }
 
@@ -476,7 +477,6 @@ const getUsersV2 = asyncHandler(async (req, res) => {
 
   const skip = (Number(page) - 1) * Number(limit);
 
-  console.log(matchStage);
 
   const usersWithOrders = await User.aggregate([
     { $match: matchStage },
@@ -718,7 +718,7 @@ const updateUser = asyncHandler(async (req, res) => {
     };
   }
 
-  if (sameAsBilling && parsedBillingAddress) {
+  if (sameAsBilling != "false" && parsedBillingAddress) {
     updateData.deliveryAddress = { ...updateData.billingAddress };
   } else if (parsedDeliveryAddress) {
     updateData.deliveryAddress = {

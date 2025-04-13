@@ -181,6 +181,33 @@ const fetchAllCategories = async (req) => {
   }
 };
 
+const fetchAllWebCategories = async (req) => {
+  try {
+    const { brandId = null } = req?.query;
+
+    const filter = {
+      ...(brandId && {
+        brand: brandId,
+      }),
+      status: "Published",
+    };
+
+    const options = {
+      sortBy: "position:asc",
+      pagination: false,
+    };
+
+    const categories = await Category.paginate(filter, options);
+
+    return categories.results;
+  } catch (err) {
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Error retrieving categories"
+    );
+  }
+};
+
 const updateCategoryOrderService = async (categories) => {
   try {
     if (!categories || categories.length === 0) {
@@ -216,4 +243,5 @@ module.exports = {
   deleteCategoryIdById,
   fetchAllCategories,
   updateCategoryOrderService,
+  fetchAllWebCategories
 };

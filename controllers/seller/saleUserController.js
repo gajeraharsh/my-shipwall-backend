@@ -48,7 +48,6 @@ const createUser = asyncHandler(async (req, res) => {
 });
 
 const createFormUser = asyncHandler(async (req, res) => {
-  
   const { error, value } = saleUserCreateValidation.validate(req?.body, {
     abortEarly: false,
   });
@@ -121,11 +120,12 @@ const getUsers = asyncHandler(async (req, res) => {
   }
 
   if (search) {
-    // Search by userName (case-insensitive)
-    where.userName = { $regex: search, $options: "i" };
-    where.fullName = { $regex: search, $options: "i" };
-    where.email = { $regex: search, $options: "i" };
-    where.phone = { $regex: search, $options: "i" };
+    where.$or = [
+      { userName: { $regex: search, $options: "i" } },
+      { fullName: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+      { phone: { $regex: search, $options: "i" } },
+    ];
   }
 
   // Filter by date range

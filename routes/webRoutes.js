@@ -22,6 +22,7 @@ const { getSeries, getWebSeries } = require("../controllers/seriesController");
 const {
   getAllCategories,
   getCategories,
+  getAllWebCategories,
 } = require("../controllers/categoryController");
 const {
   getOrderProductsGroupedBySeries,
@@ -133,7 +134,7 @@ router.get("/series", getWebSeries);
 router.get("/get-product-list", getProductsByCategory);
 
 // Categories
-router.get("/category", getAllCategories);
+router.get("/category", getAllWebCategories);
 router.get("/categoryBybrand", getCategoriesByBrand);
 
 // Products
