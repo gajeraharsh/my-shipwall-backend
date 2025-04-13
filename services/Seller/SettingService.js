@@ -4,7 +4,6 @@ const Incentive = require("../../models/Incentive");
 const ApiError = require("../../utils/apiError");
 const { status: httpStatus } = require("http-status");
 
-
 // State Services
 const createState = async (stateBody) => {
   return await State.create(stateBody);
@@ -108,46 +107,53 @@ const createIncentive = async (incentiveBody) => {
 };
 
 const fetchIncentives = async (req) => {
-  const { page = 1, limit = 5, search = "" } = req?.query;
+  const { page = 1, limit = 5, search = "", user } = req?.query;
 
   try {
-    const incentives = await Incentive.paginate(
-      {
-        $or: [
-          {
-            $expr: {
-              $regexMatch: {
-                input: { $toString: "$minAmount" },
-                regex: search,
-                options: "i",
-              },
+    const query = {
+      $or: [
+        {
+          $expr: {
+            $regexMatch: {
+              input: { $toString: "$minAmount" },
+              regex: search,
+              options: "i",
             },
           },
-          {
-            $expr: {
-              $regexMatch: {
-                input: { $toString: "$incentivePercentage" },
-                regex: search,
-                options: "i",
-              },
+        },
+        {
+          $expr: {
+            $regexMatch: {
+              input: { $toString: "$incentivePercentage" },
+              regex: search,
+              options: "i",
             },
           },
-          {
-            $expr: {
-              $regexMatch: {
-                input: { $toString: "$maxAmount" },
-                regex: search,
-                options: "i",
-              },
+        },
+        {
+          $expr: {
+            $regexMatch: {
+              input: { $toString: "$maxAmount" },
+              regex: search,
+              options: "i",
             },
           },
-        ],
-      },
-      {
-        page,
-        limit,
-      }
-    );
+        },
+      ],
+    };
+
+    // Add conditionally filter based on user presence
+    if (user) {
+      query.user = user;
+    } else {
+      query.user = { $exists: false };
+    }
+
+    const incentives = await Incentive.paginate(query, {
+      page,
+      limit,
+    });
+
     return incentives;
   } catch (err) {
     throw new ApiError(

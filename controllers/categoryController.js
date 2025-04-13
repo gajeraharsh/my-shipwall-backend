@@ -7,6 +7,7 @@ const {
   fetchCategoriesDropdown,
   fetchAllCategories,
   updateCategoryOrderService,
+  fetchAllWebCategories,
 } = require("../services/categoryService");
 
 const { asyncHandler } = require("../utils/asyncHandler");
@@ -122,6 +123,25 @@ const getAllCategories = asyncHandler(async (req, res) => {
   }
 });
 
+
+const getAllWebCategories = asyncHandler(async (req, res) => {
+  try {
+    const categories = await fetchAllWebCategories(req);
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { categories },
+          "All categories retrieved successfully"
+        )
+      );
+  } catch (err) {
+    throw new ApiError(500, err.message || "Could not retrieve categories");
+  }
+});
+
+
 const updateCategoryOrderController = asyncHandler(async (req, res) => {
   try {
     const updatedCategory = await updateCategoryOrderService(
@@ -150,4 +170,5 @@ module.exports = {
   getCategoryDropdown,
   getAllCategories,
   updateCategoryOrderController,
+  getAllWebCategories
 };

@@ -6,6 +6,9 @@ const {
   getAdminUsers,
   getAdminUsersDropdown,
   updateAdminUser,
+  adminDashboardMatrix,
+  getTopSellingProducts,
+  getTopSalesPersons,
 } = require("../../controllers/seller/adminUserController");
 const { verifyJWT } = require("../../middlewares/auth.middleware");
 const upload = require("../../middlewares/upload");
@@ -27,6 +30,11 @@ router.route("/").post(
 );
 router.route("/").get(verifyJWT, getAdminUsers);
 router.route("/dropdown").get(verifyJWT, getAdminUsersDropdown);
+router.route("/admin-dashboard-matrix").get(verifyJWT, adminDashboardMatrix);
+router.route("/top-selling-products").get(verifyJWT, getTopSellingProducts);
+router.route("/top-selling-person").get(verifyJWT, getTopSalesPersons);
+
+
 router.route("/:id").get(verifyJWT, getAdminUserById);
 
 router.route("/:userId").put(

@@ -145,7 +145,7 @@ const fetchOrders = async (req) => {
           select: "_id returnStatus refundStatus createdAt",
         },
       ],
-      sortBy: "createdAt:desc", 
+      sortBy: "createdAt:desc",
     });
 
     return orders;
@@ -218,7 +218,7 @@ const fetchAllOrders = async (req) => {
           select: "_id returnStatus refundStatus createdAt",
         },
       ],
-      sort: { createdAt: -1 },
+      sortBy: "createdAt:desc",
     });
 
     return orders;
@@ -272,31 +272,60 @@ const fetchOrdersBySalePerson = async (req) => {
   }
 
   // Filter by days (today, yesterday, 7days, 30days)
+  const andConditions = [];
+
   if (days) {
-    let startDate = new Date();
+    const now = new Date();
+    let daysCondition = {};
+
     switch (days) {
-      case "7": // Last 7 Days
-        startDate.setDate(startDate.getDate() - 7);
+      case "7":
+        daysCondition.$gte = new Date(now.setDate(now.getDate() - 7));
         break;
-      case "30": // Last 30 Days
-        startDate.setDate(startDate.getDate() - 30);
+      case "30":
+        daysCondition.$gte = new Date(now.setDate(now.getDate() - 30));
         break;
-      case "yesterday": // Yesterday
-        startDate.setDate(startDate.getDate() - 1);
+      case "yesterday":
+        const yStart = new Date();
+        yStart.setDate(yStart.getDate() - 1);
+        yStart.setHours(0, 0, 0, 0);
+
+        const yEnd = new Date();
+        yEnd.setDate(yEnd.getDate() - 1);
+        yEnd.setHours(23, 59, 59, 999);
+
+        daysCondition.$gte = yStart;
+        daysCondition.$lte = yEnd;
         break;
-      case "today": // Today
-        startDate.setHours(0, 0, 0, 0); // Set to the start of today
+      case "today":
+        const tStart = new Date();
+        tStart.setHours(0, 0, 0, 0);
+
+        const tEnd = new Date();
+        tEnd.setHours(23, 59, 59, 999);
+
+        daysCondition.$gte = tStart;
+        daysCondition.$lte = tEnd;
         break;
-      default:
-        startDate = null;
+    }
+
+    if (Object.keys(daysCondition).length) {
+      andConditions.push({ createdAt: daysCondition });
     }
   }
 
-  // Filter by date range (startDate and endDate)
   if (startDate || endDate) {
-    matchStage.createdAt = {};
-    if (startDate) matchStage.createdAt.$gte = new Date(startDate);
-    if (endDate) matchStage.createdAt.$lte = new Date(endDate);
+    const manualDateCondition = {};
+    if (startDate) manualDateCondition.$gte = new Date(startDate);
+    if (endDate) manualDateCondition.$lte = new Date(endDate);
+
+    if (Object.keys(manualDateCondition).length) {
+      andConditions.push({ createdAt: manualDateCondition });
+    }
+  }
+
+  if (andConditions.length > 0) {
+    matchStage.$and = andConditions;
   }
 
   // Filter by state (user billing address state)
@@ -496,6 +525,7 @@ const getOrderByIdService = async (orderId) => {
     const daysPassed = today.diff(orderDate, "days");
     const returnDaysLeft = Math.max(returnDaysLimit - daysPassed, 0);
     const isReturnExpired = daysPassed > returnDaysLimit;
+    const isCanReturn = order?.orderStatus == "delevered";
 
     const isReturnedOrder = returnOrder > 0;
 
@@ -506,6 +536,7 @@ const getOrderByIdService = async (orderId) => {
       returnDaysLeft,
       isReturnExpired,
       isReturnedOrder,
+      isCanReturn,
     };
   } catch (err) {
     console.log(err);

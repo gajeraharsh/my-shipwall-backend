@@ -123,7 +123,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
 
     const seriesWithProducts = await Product.aggregate([
       { $match: matchStage },
-
+    
       // Lookup color details
       {
         $lookup: {
@@ -139,7 +139,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           preserveNullAndEmptyArrays: true,
         },
       },
-
+    
       // Lookup series details
       {
         $lookup: {
@@ -154,7 +154,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           path: "$seriesDetails",
         },
       },
-
+    
       // Lookup category details
       {
         $lookup: {
@@ -169,12 +169,13 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           path: "$categoryDetails",
         },
       },
-
+    
       // Group products by series
       {
         $group: {
           _id: "$series",
           seriesName: { $first: "$seriesDetails.seriesName" },
+          seriesPosition: { $first: "$seriesDetails.position" },
           thumbImageUrl: { $first: "$seriesDetails.thumbImageUrl" },
           gallery: { $first: "$seriesDetails.gallery" },
           category: {
@@ -195,25 +196,43 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
               price: "$price",
               boxQuantity: "$boxQuantity",
               structure: "$structure",
+              position: "$position",
               color: {
                 _id: "$colorDetails._id",
                 colorName: "$colorDetails.colorName",
                 colorCode: "$colorDetails.colorCode",
               },
-              position: "$position",
             },
           },
         },
       },
-
-      // Sort series by seriesDetails.position and products by product.position
+    
+      // Sort products inside each series group
+      {
+        $project: {
+          _id: 1,
+          seriesName: 1,
+          seriesPosition: 1,
+          thumbImageUrl: 1,
+          gallery: 1,
+          category: 1,
+          products: {
+            $sortArray: {
+              input: "$products",
+              sortBy: { position: 1 },
+            },
+          },
+        },
+      },
+    
+      // Finally, sort series by their position
       {
         $sort: {
-          "products.position": 1,
-          "seriesDetails.position": 1,
+          seriesPosition: 1,
         },
       },
     ]);
+    
 
     res.status(httpStatus.OK).json({ series: seriesWithProducts });
   } catch (err) {

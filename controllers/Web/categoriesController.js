@@ -17,7 +17,8 @@ const getCategoriesByBrand = asyncHandler(async (req, res) => {
     /// @ts-ignore
     const categories = await Category.find({
       brand: brandId,
-    });
+      status: "Published",
+    }).sort({ position: 1 });
 
     // if (!categories || categories.length === 0) {
     //     throw new ApiError(httpStatus.NOT_FOUND, 'No categories found');
@@ -29,7 +30,7 @@ const getCategoriesByBrand = asyncHandler(async (req, res) => {
         new ApiResponse(
           200,
           { categories },
-          "Categories retrieved successfully"
+          "Categories retrieved successfully" 
         )
       );
   } catch (err) {

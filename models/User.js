@@ -37,7 +37,7 @@ const userSchema = new Schema(
     },
     dob: {
       type: Date,
-      required: true,
+      required: false,
     },
     lenguage: {
       type: String,
