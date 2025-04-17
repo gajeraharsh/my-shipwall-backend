@@ -5,6 +5,7 @@ const {
   fetchRejectionOrders,
   getOrderRejectionByIdService,
   updateRejectionOrderStatusService,
+  cancelRejectionOrderWebService,
 } = require("../services/rejectionOrderService");
 
 const { asyncHandler } = require("../utils/asyncHandler");
@@ -87,11 +88,24 @@ const orderRejectionApproveController = asyncHandler(async (req, res) => {
     );
 });
 
+const cancelRejectionOrderWebController = asyncHandler(async (req, res) => {
+  const orderId = req.body.orderId;
+  const changedBy = req.user._id;
+
+  const order = await cancelRejectionOrderWebService(orderId, changedBy);
+  res
+    .status(201)
+    .json(
+      new ApiResponse(201, order, "Order rejection cancelled successfully")
+    );
+});
+
 module.exports = {
   createRejectionOrder,
   getRejectionOrders,
   getAllRejectionOrders,
   getRejectionOrderbyId,
   orderRejectionApproveController,
-  updateRejectionOrderStatus
+  updateRejectionOrderStatus,
+  cancelRejectionOrderWebController,
 };

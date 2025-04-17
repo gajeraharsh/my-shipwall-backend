@@ -47,6 +47,7 @@ const {
   createRejectionOrder,
   getRejectionOrderbyId,
   getRejectionOrders,
+  cancelRejectionOrderWebController,
 } = require("../controllers/orderRejectionController");
 const { getBrands } = require("../controllers/brandController");
 const {
@@ -78,6 +79,7 @@ const {
   createReturnOrder,
   getReturnOrderbyId,
   getReturnOrders,
+  cancelReturnOrderController,
 } = require("../controllers/returnOrderController");
 const {
   getChats,
@@ -172,6 +174,11 @@ router.post(
   },
   createRejectionOrder
 );
+router.post(
+  "/rejection-order/cancel",
+  verifyJWT,
+  cancelRejectionOrderWebController
+);
 
 // Support
 router.post(
@@ -233,6 +240,7 @@ router.post(
   },
   createReturnOrder
 );
+router.post("/return/cancel", verifyJWT, cancelReturnOrderController);
 
 // Chat
 router.get("/chat", verifyJWT, getChats);

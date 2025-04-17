@@ -538,6 +538,49 @@ const createRefundForRejectionOrderService = async ({
   return refund;
 };
 
+const cancelRejectionOrderWebService = async (orderId, changedBy) => {
+  const order = await RejectionOrder.findById(orderId);
+  if (!order) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
+  }
+
+  if (order?.orderStatus == "Cancelled") {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "status is cancelled you can not change status."
+    );
+  }
+
+  if (order?.orderStatus == "Approved_Credited") {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "status is approvved you can not change status."
+    );
+  }
+
+  const statusNotes = {
+    Cancelled: "Rejection order is cancelled.",
+  };
+
+  const note = statusNotes["Cancelled"] || "";
+
+  // Update status and log activity
+  order.orderStatus = "Cancelled";
+
+  if (!order.activities) order.activities = [];
+
+  order.activities.push({
+    status: "Cancelled",
+    updatedBy: changedBy,
+    note,
+    timestamp: new Date(),
+  });
+
+  await order.save();
+
+  return order;
+};
+
 module.exports = {
   createOrderRejectionService,
   fetchRejectionOrders,
@@ -547,4 +590,5 @@ module.exports = {
   updateRejectionActivityById,
   updateRejectionOrderStatusService,
   createRefundForRejectionOrderService,
+  cancelRejectionOrderWebService,
 };

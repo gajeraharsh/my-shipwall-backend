@@ -10,6 +10,7 @@ const {
   getOrderReturnByIdService,
   updateReturnActivityById,
   updateReturnOrderStatusService,
+  cancelReturnOrderService,
 } = require("../services/returnOrderService");
 
 const createReturnOrder = asyncHandler(async (req, res) => {
@@ -87,6 +88,23 @@ const orderReturnApproveController = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedOrder, "return Approved successfully."));
 });
 
+const cancelReturnOrderController = asyncHandler(async (req, res) => {
+  const orderId = req.body.orderId;
+  const changedBy = req.user._id; // assuming `req.user._id` is set via auth middleware
+
+  const updatedOrder = await cancelReturnOrderService(orderId, changedBy);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedOrder,
+        "return order status cancelled successfully"
+      )
+    );
+});
+
 module.exports = {
   createReturnOrder,
   getReturnOrders,
@@ -94,4 +112,5 @@ module.exports = {
   getReturnOrderbyId,
   updateReturnOrderStatus,
   orderReturnApproveController,
+  cancelReturnOrderController,
 };

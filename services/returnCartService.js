@@ -133,9 +133,7 @@ const addToReturnCartService = async (
   if (combinedQty > totalOrderedQty) {
     throw new ApiError(
       400,
-      `You can only return up to ${
-        totalOrderedQty - alreadyReturningQty
-      } more units of this product`
+      "You can only return up to the quantity originally ordered for this item."
     );
   }
 

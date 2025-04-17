@@ -106,6 +106,7 @@ OrderSchema.virtual("returnOrder", {
   localField: "_id",
   foreignField: "order",
   justOne: true,
+  match: { returnStatus: { $ne: "Cancelled" } },
 });
 
 OrderSchema.set("toObject", { virtuals: true });
