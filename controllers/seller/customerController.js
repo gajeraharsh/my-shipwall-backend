@@ -5,7 +5,7 @@ const ApiResponse = require("../../utils/apiResponse");
 const ApiError = require("../../utils/apiError");
 const { uploadFileToS3 } = require("../../services/fileUploads3Service");
 const Order = require("../../models/Order");
-const IncentivePayout = require('../../models/IncentivePayout')
+const IncentivePayout = require("../../models/IncentivePayout");
 const { status: httpStatus } = require("http-status");
 
 const mongoose = require("mongoose");
@@ -834,7 +834,6 @@ const updateSaleMember = asyncHandler(async (req, res) => {
 
 const dashboardMatrix = asyncHandler(async (req, res) => {
   const saleUserId = req.user._id;
-  console.log(saleUserId,'saleUserId')
 
   // Total customers assigned to current salesperson
   const totalCustomers = await User.countDocuments({
@@ -876,7 +875,7 @@ const dashboardMatrix = asyncHandler(async (req, res) => {
     {
       $match: {
         salePerson: new mongoose.Types.ObjectId(saleUserId),
-        // status: "Settled", 
+        // status: "Settled",
       },
     },
     {
@@ -925,11 +924,10 @@ const dashboardMatrix = asyncHandler(async (req, res) => {
       totalCustomers,
       totalUnassignedCustomers,
       totalOrders,
-      totalIncentiveAmount,
-      lastMonthIncentive,
+      totalIncentiveAmount: parseFloat(totalIncentiveAmount.toFixed(2)),
+      lastMonthIncentive: parseFloat(lastMonthIncentive.toFixed(2)),
     },
   });
-
 });
 
 module.exports = {
