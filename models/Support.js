@@ -6,7 +6,7 @@ const SupportSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     typeOfComplaint: { type: String, required: true },
-    serviceRelatedReason: { type: String, required: true },
+    serviceRelatedReason: { type: String, required: false },
     complaintStatus: {
       type: String,
       enum: ["Open", "In Progress", "Closed", "Invalid"],

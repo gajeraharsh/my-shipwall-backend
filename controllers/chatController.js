@@ -51,7 +51,7 @@ const getOrCreateChat = async ({ userId, relatedToType, relatedToId }) => {
     if (relatedToType === "Support") {
       const support = await Support.findById(relatedToId).populate("user");
       if (!support || !support.user) {
-        throw new ApiError(404, "Return order or associated user not found");
+        throw new ApiError(404, "Support or associated user not found");
       }
       const returnUserId = support.user._id.toString();
       participants.add(returnUserId);
@@ -62,7 +62,7 @@ const getOrCreateChat = async ({ userId, relatedToType, relatedToId }) => {
         "user"
       );
       if (!support || !support.user) {
-        throw new ApiError(404, "Return order or associated user not found");
+        throw new ApiError(404, "RejectionCart order or associated user not found");
       }
       const returnUserId = support.user._id.toString();
       participants.add(returnUserId);

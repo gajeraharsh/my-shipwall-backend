@@ -515,6 +515,8 @@ const getOrderByIdService = async (orderId) => {
 
     const returnOrder = await ReturnOrder.countDocuments({
       order: order?._id,
+      returnStatus: { $ne: 'Cancelled' },
+
     });
 
     const generalSetting = await GeneralSettingModel.findOne({});

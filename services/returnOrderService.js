@@ -161,7 +161,7 @@ const fetchAllReturnOrders = async (req) => {
     if (days) {
       const today = new Date();
       let startDateForFilter = new Date(today.setHours(0, 0, 0, 0)); // Start of today
-      
+
       if (parseInt(days) === 0) {
         // Today only
         const endOfToday = new Date(startDateForFilter);
@@ -172,20 +172,26 @@ const fetchAllReturnOrders = async (req) => {
         startDateForFilter.setDate(today.getDate() - 1);
         const endOfYesterday = new Date(startDateForFilter);
         endOfYesterday.setHours(23, 59, 59, 999);
-        matchStage.createdAt = { $gte: startDateForFilter, $lte: endOfYesterday };
+        matchStage.createdAt = {
+          $gte: startDateForFilter,
+          $lte: endOfYesterday,
+        };
       } else {
         // Last 'n' days
         startDateForFilter.setDate(today.getDate() - parseInt(days));
         matchStage.createdAt = { $gte: startDateForFilter, $lte: new Date() };
       }
     } else if (startDate && endDate) {
-      matchStage.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+      matchStage.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
     } else if (startDate) {
       matchStage.createdAt = { $gte: new Date(startDate) };
     } else if (endDate) {
       matchStage.createdAt = { $lte: new Date(endDate) };
     }
-        
+
     const pipeline = [
       { $match: matchStage },
       {
@@ -208,7 +214,6 @@ const fetchAllReturnOrders = async (req) => {
             { "user.fullName": { $regex: search, $options: "i" } },
             { "user.phone": { $regex: search, $options: "i" } },
             { "user.id": { $regex: search, $options: "i" } },
-
           ],
         },
       });
@@ -242,7 +247,6 @@ const fetchAllReturnOrders = async (req) => {
 
     const docs = await ReturnOrder.aggregate(pipeline);
 
-
     return {
       docs,
       totalDocs: total,
@@ -260,7 +264,6 @@ const fetchAllReturnOrders = async (req) => {
     );
   }
 };
-
 
 const fetchReturnOrderById = async (orderId) => {
   try {
@@ -543,6 +546,49 @@ const createReturnForRejectionOrderService = async ({
   return refund;
 };
 
+const cancelReturnOrderService = async (orderId, changedBy) => {
+  const order = await ReturnOrder.findById(orderId);
+  if (!order) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Return Order not found");
+  }
+
+  if (order?.returnStatus == "Cancelled") {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "status is cancelled you can not change status."
+    );
+  }
+
+  if (order?.returnStatus == "Approved_Credited") {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "status is approvved you can not change status."
+    );
+  }
+
+  const statusNotes = {
+    Cancelled: "Rejection order is cancelled.",
+  };
+
+  const note = statusNotes["Cancelled"] || "";
+
+  // Update status and log activity
+  order.returnStatus = "Cancelled";
+
+  if (!order.activities) order.activities = [];
+
+  order.activities.push({
+    status: "Cancelled",
+    updatedBy: changedBy,
+    note,
+    timestamp: new Date(),
+  });
+
+  await order.save();
+
+  return order;
+};
+
 module.exports = {
   createOrderReturnService,
   fetchReturnOrders,
@@ -552,4 +598,5 @@ module.exports = {
   updateReturnActivityById,
   updateReturnOrderStatusService,
   createReturnForRejectionOrderService,
+  cancelReturnOrderService
 };

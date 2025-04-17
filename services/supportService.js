@@ -47,7 +47,11 @@ const fetchTickets = async (req) => {
     const filter = {};
 
     if (query) {
-      filter.complaintReason = { $regex: query, $options: "i" };
+      filter.$or = [
+        { complaintReason: { $regex: query, $options: "i" } },
+        { id: { $regex: query, $options: "i" } },
+      ];
+
     }
 
     if (status) {
@@ -72,7 +76,7 @@ const fetchTickets = async (req) => {
     const tickets = await Support.paginate(filter, {
       page,
       limit,
-      sort: { createdAt: -1 },
+      sortBy: "createdAt:desc",
       populate: [{ path: "user", select: "_id id" }],
     });
 
