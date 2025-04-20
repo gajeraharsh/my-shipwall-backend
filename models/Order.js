@@ -95,7 +95,7 @@ const OrderSchema = new Schema(
     },
     recipientId: {
       type: String,
-      unique:true
+      unique: true,
     },
   },
   { timestamps: true }
@@ -109,6 +109,14 @@ OrderSchema.virtual("returnOrder", {
   match: { returnStatus: { $ne: "Cancelled" } },
 });
 
+OrderSchema.virtual("rejectionOrder", {
+  ref: "RejectionOrder",
+  localField: "_id",
+  foreignField: "order",
+  justOne: true,
+  match: { returnStatus: { $ne: "Cancelled" } },
+});
+
 OrderSchema.set("toObject", { virtuals: true });
 OrderSchema.set("toJSON", { virtuals: true });
 
@@ -116,8 +124,8 @@ OrderSchema.plugin(paginate);
 OrderSchema.plugin(incrementId, "QVAPOR");
 OrderSchema.plugin(incrementId);
 OrderSchema.plugin(autoIncrementId, {
-  field: "recipientId",      // field to be auto-generated
-  prefix: "QVAP",            // prefix for the ID
+  field: "recipientId", // field to be auto-generated
+  prefix: "QVAP", // prefix for the ID
   counterKey: "recipientId", // internal tracker ID
 });
 

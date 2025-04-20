@@ -11,6 +11,9 @@ const ReturnOrder = require("../models/ReturnOrder");
 const { uploadFileToS3 } = require("./fileUploads3Service");
 const IncentiveModel = require("../models/Incentive");
 const IncentivePayoutModel = require("../models/IncentivePayout");
+const ExcelJS = require("exceljs");
+const fs = require("fs");
+const path = require("path");
 
 const createOrderService = async (userId) => {
   const cart = await Cart.findOne({ user: userId }).populate(
@@ -515,8 +518,7 @@ const getOrderByIdService = async (orderId) => {
 
     const returnOrder = await ReturnOrder.countDocuments({
       order: order?._id,
-      returnStatus: { $ne: 'Cancelled' },
-
+      returnStatus: { $ne: "Cancelled" },
     });
 
     const generalSetting = await GeneralSettingModel.findOne({});
@@ -710,6 +712,252 @@ const UploadLr = async (orderId, file, changedBy) => {
   return order;
 };
 
+const fetchOrderExcelFileExport = async (req) => {
+  const matchStage = {};
+
+  const pipeline = [
+    {
+      $lookup: {
+        from: "users",
+        localField: "user",
+        foreignField: "_id",
+        as: "userInfo",
+      },
+    },
+    { $unwind: "$userInfo" },
+
+    // Join with City model (assuming billing address structure is userInfo.billingAddress.city)
+    {
+      $lookup: {
+        from: "cities",
+        localField: "userInfo.billingAddress.city",
+        foreignField: "_id",
+        as: "userInfo.billingAddress.city",
+      },
+    },
+    {
+      $unwind: {
+        path: "$userInfo.billingAddress.city",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "states",
+        localField: "userInfo.billingAddress.state",
+        foreignField: "_id",
+        as: "userInfo.billingAddress.state",
+      },
+    },
+    {
+      $unwind: {
+        path: "$userInfo.billingAddress.state",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "users", // You want to join the 'users' collection again for the salePerson
+        localField: "userInfo.salePerson",
+        foreignField: "_id",
+        as: "salePersonInfo",
+      },
+    },
+    {
+      $unwind: {
+        path: "$salePersonInfo",
+        preserveNullAndEmptyArrays: true, // Include orders without a salePerson if needed
+      },
+    },
+    {
+      $lookup: {
+        from: "returnorders", // collection name (lowercase plural)
+        let: { orderId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$order", "$$orderId"] },
+                  { $ne: ["$returnStatus", "Cancelled"] },
+                ],
+              },
+            },
+          },
+        ],
+        as: "returnOrder",
+      },
+    },
+    {
+      $unwind: {
+        path: "$returnOrder",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // Apply the match stage for filtering orders
+    { $match: matchStage },
+
+    {
+      $project: {
+        _id: 1,
+        id: 1,
+        orderId: 1,
+        products: 1,
+        finalTotal: 1,
+        subtotal: 1,
+        subTotalIncTax: 1,
+        shippingFee: 1,
+        taxAmount: 1,
+        orderStatus: 1,
+        paymentStatus: 1,
+        shippingDetails: 1,
+        deliveredAt: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        hsnTx: 1,
+        recipientId: 1,
+        paymentMode: 1,
+        paymentId: 1,
+        transportName: 1,
+        trackingLink: 1,
+        trackingId: 1,
+        sapInvoideNumber: 1,
+        eWayBillNo: 1,
+        uploadlr: 1,
+        deliveredAt: 1,
+        returnOrder: 1,
+        rejectionOrder: 1,
+        user: "$userInfo",
+        salePerson: "$salePersonInfo", // Add the salePerson info to the projection
+      },
+    },
+    { $sort: { createdAt: -1 } },
+  ];
+
+  const orders = await Order.aggregate(pipeline);
+
+  // Create Excel workbook and worksheet
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Orders");
+
+  worksheet.columns = [
+    { header: "id", key: "keyid", width: 20 },
+    { header: "User ID", key: "userId", width: 20 },
+    { header: "Business Name", key: "businessName", width: 20 },
+    { header: "Customer Name", key: "fullName", width: 25 },
+    { header: "Customer Email", key: "customerEmail", width: 30 },
+    {
+      header: "Customer Mobile Number",
+      key: "customerMobileNumber",
+      width: 30,
+    },
+    { header: "GST number", key: "GstNumber", width: 30 },
+    { header: "Order ID", key: "orderId", width: 20 },
+    { header: "Sub Total", key: "subTotal", width: 20 },
+    {
+      header: "Sub Total Including Tax",
+      key: "subTotalIncludingTax",
+      width: 20,
+    },
+    { header: "Tax", key: "tax", width: 20 },
+    { header: "Shipping Fees", key: "Shipping", width: 20 },
+    { header: "Order Amount", key: "orderAmount", width: 20 },
+    { header: "Receipt No ", key: "ReceiptNo", width: 20 },
+    { header: "Order Status ", key: "OrderStatus", width: 20 },
+    { header: "Payment Mode", key: "PaymentMode", width: 20 },
+    { header: "Payment Id", key: "PaymentId", width: 20 },
+    { header: "Payment Status", key: "PaymentStatus", width: 20 },
+    { header: "Order On", key: "OrderOn", width: 20 },
+    { header: "Last Updated On", key: "LastUpdatedOn", width: 20 },
+    { header: "Billin Address", key: "BillingAddress", width: 20 },
+    { header: "Delivery Address", key: "DeliveryAddress", width: 20 },
+    { header: "Tracking Id", key: "TrackingId", width: 20 },
+    { header: "Tracking Link", key: "TrackingLink", width: 20 },
+    { header: "Transport Name", key: "transport_name", width: 20 },
+    { header: "EWay No", key: "eWayBillNo", width: 20 },
+    { header: "LRDocument", key: "uploadlr", width: 20 },
+    { header: "Rejection id", key: "RejectionGuid", width: 20 },
+    { header: "Return id", key: "ReturnGuid", width: 20 },
+    { header: "Rejection Status", key: "RejectionStatus", width: 20 },
+    { header: "Return Status", key: "ReturnStatus", width: 20 },
+  ];
+
+  function formatFullAddress(address) {
+    if (!address) return "";
+
+    const line1 = address.line1 || "";
+    const line2 = address.line2 || "";
+    const landmark = address.landmark ? `, Landmark: ${address.landmark}` : "";
+    const location = address.location ? `, Location: ${address.location}` : "";
+    const city = address.city?.name || "";
+    const state = address.state?.name || "";
+    const pincode = address.pincode || "";
+    const country = address.country || "India";
+
+    const parts = [line1, line2, city, state, pincode, country].filter(Boolean); // Remove empty strings
+
+    return `${parts.join(", ")}${landmark}${location}`;
+  }
+
+  orders.forEach((order, index) => {
+    const billingAddress = formatFullAddress(order.user?.billingAddress);
+    const deliveryAddress = formatFullAddress(order.user?.deliveryAddress);
+
+    worksheet.addRow({
+      keyid: index + 1,
+      userId: order?.user?.id,
+      businessName: order?.user?.businessName,
+      fullName: order?.user?.fullName,
+      customerEmail: order?.user?.email,
+      customerMobileNumber: order?.user?.phone,
+      GstNumber: order?.user?.gstNumber,
+      orderId: order?.id,
+      subTotal: order?.subtotal,
+      subTotalIncludingTax: order?.subTotalIncTax,
+      tax: order?.taxAmount,
+      Shipping: order?.shippingFee,
+      orderAmount: order?.finalTotal,
+      ReceiptNo: order?.recipientId,
+      OrderStatus: order?.orderStatus,
+      PaymentMode: order?.paymentMode,
+      PaymentId: order?.paymentId,
+      PaymentStatus: order?.paymentStatus,
+      OrderOn: moment(order?.createdAt).format("YYYY-MM-DD HH:mm:ss"),
+      LastUpdatedOn: moment(order?.updatedAt).format("YYYY-MM-DD HH:mm:ss"),
+      BillingAddress: billingAddress,
+      DeliveryAddress: deliveryAddress,
+      TrackingId: order?.trackingId,
+      TrackingLink: order?.trackingLink,
+      transport_name: order?.transportName,
+      eWayBillNo: order?.eWayBillNo,
+      uploadlr: order?.uploadlr,
+      RejectionGuid: order?.rejectionOrder?.id,
+      ReturnGuid: order?.returnOrder?.id,
+      RejectionStatus: order?.rejectionOrder?.orderStatus,
+      ReturnStatus: order?.returnOrder?.returnStatus,
+    });
+  });
+
+  const exportDir = path.join(__dirname, "..", "public", "exports");
+  const fileName = `orders_${Date.now()}.xlsx`;
+  const filePath = path.join(exportDir, fileName);
+
+  // Ensure directory exists
+  if (!fs.existsSync(exportDir)) {
+    fs.mkdirSync(exportDir, { recursive: true });
+  }
+  // Write to file
+  await workbook.xlsx.writeFile(filePath);
+
+  const fileUrl = `${req.protocol}://${req.get("host")}/exports/${fileName}`;
+
+  return {
+    file: fileUrl,
+    orders,
+  };
+};
+
 module.exports = {
   createOrderService,
   fetchOrders,
@@ -720,4 +968,5 @@ module.exports = {
   changeOrder,
   changePaymentStatus,
   UploadLr,
+  fetchOrderExcelFileExport,
 };
