@@ -11,6 +11,8 @@ const {
     logoutUser,
     updateUser,
     updateVerification,
+    getAdminUserInfo,
+    adminLogin,
 } = require("../controllers/userController");
 
 const { authorizeRoles, verifyJWT } = require("../middlewares/auth.middleware");
@@ -22,10 +24,15 @@ const router = express.Router();
 router.route("/").get(verifyJWT, getUsers);
 router.route("/v2").get(verifyJWT, getUsersV2);
 router.route("/user").get(verifyJWT, getUser);
+router.get("/adminInfo", verifyJWT,getAdminUserInfo);
+
 router.route("/:id").get(verifyJWT, getCustomerById);
+
+
 
 router.route("/create").post(createUser);
 router.route("/login").post(loginUser);
+router.route("/admin-login").post(adminLogin);
 router.route("/logout").post(verifyJWT, logoutUser);
 
 router.route("/change-password").post(verifyJWT, changePassword);

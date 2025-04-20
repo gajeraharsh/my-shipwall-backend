@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require('path');
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
@@ -25,6 +26,9 @@ const customerRoute = require("./routes/seller/customerRoute");
 const adminUserRoute = require("./routes/seller/AdminUserRotue");
 const storeVisitRoutes = require("./routes/storeVisitRotues");
 const returnOrderRoutes = require("./routes/returnOrderRoutes");
+
+const supportTeamRoute = require("./routes/supportTeamRoute");
+const rejectionTeamRoute = require("./routes/rejectionTeamRoute");
 
 const webRoutes = require("./routes/webRoutes");
 
@@ -56,6 +60,7 @@ app.use(
 
 app.use(express.json());
 app.use(cookieParser());
+app.use("/exports", express.static(path.join(__dirname, "public", "exports")));
 
 // MongoDB connection
 connectDB();
@@ -75,6 +80,10 @@ app.use("/api/support", supportRoutes);
 app.use("/api/contact", contactusRoute);
 app.use("/api/rejection-order", rejectionOrderRoutes);
 app.use("/api/return-order", returnOrderRoutes);
+
+app.use("/api/rejection-team", rejectionTeamRoute);
+app.use("/api/support-team", supportTeamRoute);
+
 app.use("/api/order", orderRoute);
 app.use("/api/chat", chatRoutes);
 

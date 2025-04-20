@@ -17,6 +17,7 @@ const {
   resetPasswordController,
   updateUser,
   verifyOtp,
+  getCreditHistory,
 } = require("../controllers/userController");
 const { getSeries, getWebSeries } = require("../controllers/seriesController");
 const {
@@ -124,6 +125,14 @@ router.put(
 
 // User
 router.get("/user", verifyJWT, authorizeRoles("user"), getUser);
+
+// credit history
+router.get(
+  "/credit-history",
+  verifyJWT,
+  authorizeRoles("user"),
+  getCreditHistory
+);
 
 // Banners
 router.get("/banners", getBanners);

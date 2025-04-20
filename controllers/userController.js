@@ -10,6 +10,7 @@ const ApiError = require("../utils/apiError");
 const { generateAccessAndRefereshTokens } = require("../handlers/user");
 const { uploadFileToS3 } = require("../services/fileUploads3Service");
 const mongoose = require("mongoose");
+const CustomerWalletCredit = require("../models/CustomerWalletCredit");
 
 const createUser = asyncHandler(async (req, res) => {
   const { error, value } = userValidationSchema.validate(req?.body, {
@@ -477,7 +478,6 @@ const getUsersV2 = asyncHandler(async (req, res) => {
 
   const skip = (Number(page) - 1) * Number(limit);
 
-
   const usersWithOrders = await User.aggregate([
     { $match: matchStage },
 
@@ -555,6 +555,17 @@ const getUser = asyncHandler(async (req, res) => {
         select: "pageGroup pageName pageLink", // You can adjust the fields you want to select from the Page model
       },
     });
+
+  if (!user) {
+    return res.status(404).json(new ApiResponse(404, {}, "User not found"));
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { user: user }, "User retrivied successfully"));
+});
+
+const getAdminUserInfo = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
 
   if (!user) {
     return res.status(404).json(new ApiResponse(404, {}, "User not found"));
@@ -866,6 +877,112 @@ const updateVerification = asyncHandler(async (req, res) => {
     );
 });
 
+const adminLogin = asyncHandler(async (req, res) => {
+  const { error, value } = userValidationLoginSchema.validate(req?.body, {
+    abortEarly: false,
+  });
+
+  if (error) {
+    console.log(error.details);
+
+    throw new ApiError(400, "Validation failed.", error?.details);
+  }
+
+  const { userName, password } = value;
+
+  const allowedRoles = ["admin", "admin_support", "admin_rejection"];
+  const query = [];
+
+  if (userName) query.push({ userName, role: { $in: allowedRoles } });
+  // if (logginId) query.push({ logginId, role: { $in: allowedRoles } });
+
+  const user = await User.findOne({
+    $or: query,
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+
+  if (user?.isBlock) {
+    return res
+      .status(400)
+      .json(
+        new ApiResponse(
+          400,
+          {},
+          "User is blocked. Please contact admin for more details."
+        )
+      );
+  }
+
+  const isPasswordValid = await user.isPasswordCorrect(password);
+
+  if (!isPasswordValid) {
+    throw new ApiError(500, "Invalid user credentials");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
+    user._id
+  );
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "User logged In Successfully"
+      )
+    );
+});
+
+const getCreditHistory = asyncHandler(async (req, res) => {
+  try {
+    const page = req?.query?.page;
+    const limit = req?.query?.limit;
+    const query = req?.query?.search || "";
+    const userId = req.user?._id;
+
+    const creditHistory = await CustomerWalletCredit.paginate(
+      {
+        user: userId,
+      },
+      {
+        page,
+        limit,
+      }
+    );
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { creditHistory },
+          "creditHistory retrieved successfully"
+        )
+      );
+  } catch (err) {
+    throw new ApiError(500, err.message || "Could not retrieve creditHistory");
+  }
+});
+
 module.exports = {
   createUser,
   changePassword,
@@ -882,4 +999,7 @@ module.exports = {
   deleteUserById,
   getCustomerById,
   updateVerification,
+  getAdminUserInfo,
+  adminLogin,
+  getCreditHistory,
 };

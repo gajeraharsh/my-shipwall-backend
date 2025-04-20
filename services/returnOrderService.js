@@ -11,6 +11,7 @@ const Refund = require("../models/Refund");
 const ReturnOrder = require("../models/ReturnOrder");
 const ReturnCart = require("../models/ReturnCart");
 const User = require("../models/User");
+const CustomerWalletCredit = require("../models/CustomerWalletCredit");
 
 // Express types like Request are only relevant in TypeScript and are not needed in CommonJS
 
@@ -541,6 +542,15 @@ const createReturnForRejectionOrderService = async ({
     timestamp: new Date(),
   });
 
+  await CustomerWalletCredit.create({
+    amount: refundAmount,
+    type: "credit",
+    description: `Refund for return order ${returnOrder._id}`,
+    referenceId: returnOrder._id,
+    referenceModel: "ReturnOrder",
+    user: returnOrder.user,
+  });
+
   await returnOrder.save();
 
   return refund;
@@ -598,5 +608,5 @@ module.exports = {
   updateReturnActivityById,
   updateReturnOrderStatusService,
   createReturnForRejectionOrderService,
-  cancelReturnOrderService
+  cancelReturnOrderService,
 };

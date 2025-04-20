@@ -8,6 +8,7 @@ const {
   getOrderByIdService,
   updateOrderStatusService,
   UploadLr,
+  fetchOrderExcelFileExport,
 } = require("../services/orderService");
 
 const { asyncHandler } = require("../utils/asyncHandler");
@@ -88,6 +89,12 @@ const UploadLrController = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, order, "Order payment changed successfully"));
 });
 
+const exportAllOrderExcel = asyncHandler(async (req, res) => {
+  const order = await fetchOrderExcelFileExport(req);
+  res.status(201).json(new ApiResponse(201, order, "order exported successfully"));
+});
+
+
 module.exports = {
   createOrder,
   getOrders,
@@ -98,4 +105,5 @@ module.exports = {
   changeOrderController,
   chanegPaymentStatusController,
   UploadLrController,
+  exportAllOrderExcel
 };

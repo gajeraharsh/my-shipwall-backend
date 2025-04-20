@@ -10,6 +10,7 @@ const moment = require("moment");
 const { uploadFileToS3 } = require("./fileUploads3Service");
 const Refund = require("../models/Refund");
 const User = require("../models/User");
+const CustomerWalletCredit = require("../models/CustomerWalletCredit");
 
 // Express types like Request are only relevant in TypeScript and are not needed in CommonJS
 
@@ -513,6 +514,15 @@ const createRefundForRejectionOrderService = async ({
     status: "Initiated",
     note: note || "Manual refund initiated",
     initiatedBy,
+  });
+
+  await CustomerWalletCredit.create({
+    amount: refundAmount,
+    user: rejectionOrder.user,
+    type: "credit",
+    description: `Refund for Rejection Order ${rejectionOrder.rejectionOrderId}`,
+    referenceId: refund._id,
+    referenceModel: "RejectionOrder",
   });
 
   const user = await User.findByIdAndUpdate(
