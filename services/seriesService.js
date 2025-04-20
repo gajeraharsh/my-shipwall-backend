@@ -33,6 +33,7 @@ const fetchSeries = async (req, filter) => {
     const limit = req?.query?.limit;
     const query = req?.query?.search;
     const sortBy = req?.query?.sortBy;
+    const isDisplayHome = req?.query?.isDisplayHome;
 
     const sortOptions = {};
 
@@ -47,6 +48,9 @@ const fetchSeries = async (req, filter) => {
       {
         seriesName: { $regex: query ?? "", $options: "i" },
         ...filter,
+        ...(isDisplayHome && {
+          isDisplayHome: true,
+        }),
       },
       {
         page,

@@ -21,6 +21,7 @@ const createSeriesValidation = Joi.object({
   pageTitle: Joi.string().optional().messages({
     "string.base": "Page title must be a string.",
   }),
+  isDisplayHome: Joi.boolean().required().messages(),
   metaDescription: Joi.string().optional().messages({
     "string.base": "Meta description must be a string.",
   }),
@@ -51,6 +52,7 @@ const updateSeriesValidation = Joi.object({
   pageTitle: Joi.string().optional().messages({
     "string.base": "Page title must be a string.",
   }),
+  isDisplayHome: Joi.boolean().required().messages(),
   metaDescription: Joi.string().optional().messages({
     "string.base": "Meta description must be a string.",
   }),
