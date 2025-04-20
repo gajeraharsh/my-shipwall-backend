@@ -7,12 +7,15 @@ const {
   getAllOrders,
   getOrderbyId,
   updateOrderStatusController,
+  exportAllOrderExcel,
 } = require("../controllers/orderController");
 const upload = require("../middlewares/upload");
 
 const router = express.Router();
 
 router.route("/").get(verifyJWT, getAllOrders);
+router.route("/export-excel").get(verifyJWT, exportAllOrderExcel);
+
 router.route("/:orderId").get(verifyJWT, getOrderbyId);
 router
   .route("/change-status/:orderId")

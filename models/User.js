@@ -71,7 +71,15 @@ const userSchema = new Schema(
     role: {
       type: String,
       required: true,
-      enum: ["admin", "user", "super_sale_admin", "sale_admin", "sale_member"],
+      enum: [
+        "admin",
+        "admin_support",
+        "admin_rejection",
+        "user",
+        "super_sale_admin",
+        "sale_admin",
+        "sale_member",
+      ],
     },
     isSuperSaleAdmin: {
       type: Boolean,
