@@ -228,7 +228,7 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-userSchema.methods.generatePasswordResetToken = async function () {
+userSchema.methods.generatePasswordResetToken = async function (isSeller = false) {
   // Generate a random token
   const resetToken = crypto.randomBytes(32).toString("hex");
 
@@ -237,14 +237,16 @@ userSchema.methods.generatePasswordResetToken = async function () {
 
   // Store the token
   this.resetPasswordToken = resetToken;
-  await this.save();
+  await this.save({
+    validateBeforeSave: false,
+  });
 
   // Send password reset email
-  await this.sendPasswordResetEmail(resetToken);
+  await this.sendPasswordResetEmail(resetToken,isSeller);
 };
 
-userSchema.methods.sendPasswordResetEmail = async function (token) {
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+userSchema.methods.sendPasswordResetEmail = async function (token,isSeller) {
+  const resetUrl = `${isSeller ? process.env.SALE_FRONTEND_URL : process.env.FRONTEND_URL}/reset-password/${token}`;
 
   // Setup email transporter
   const transporter = nodemailer.createTransport({

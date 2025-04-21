@@ -236,6 +236,25 @@ const updateCustomer = asyncHandler(async (req, res) => {
 
   if (profileImageUrl) updateData.profileImage = profileImageUrl;
 
+  const isEmailexists = await User.findOne({
+    email: req?.body?.email,
+    _id: { $ne: userId },
+  });
+
+  if (isEmailexists) {
+    throw new ApiError(409, "Email already exists.");
+  }
+
+  // const userNameExists = await User.findOne({
+  //   userName: req?.body?.userName,
+  //   _id: { $ne: userId },
+  // });
+
+
+  // if (userNameExists) {
+  //   throw new ApiError(409, "UserName already exists.");
+  // }
+
   const updatedUser = await User.findByIdAndUpdate(
     userId,
     { $set: updateData },

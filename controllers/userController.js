@@ -174,10 +174,10 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const forgotPasswordController = asyncHandler(async (req, res) => {
-  const { email } = req?.body;
+  const { email, role } = req?.body;
 
   // Find the user by email
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email, role });
   if (!user) {
     throw new ApiError(404, "User not found with that email address");
   }
@@ -983,6 +983,34 @@ const getCreditHistory = asyncHandler(async (req, res) => {
   }
 });
 
+const forgotPasswordSellerController = asyncHandler(async (req, res) => {
+  const { email } = req?.body;
+  // Find the user by email
+  const user = await User.findOne({
+    email,
+    role: {
+      $in: ["sale_member", "sale_admin", "super_sale_admin"],
+    },
+  });
+  if (!user) {
+    throw new ApiError(404, "User not found with that email address");
+  }
+
+  // Generate and send reset token via email
+  await user.generatePasswordResetToken(true);
+
+  // Success response
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        null,
+        "Password reset link has been sent to your email address."
+      )
+    );
+});
+
 module.exports = {
   createUser,
   changePassword,
@@ -1002,4 +1030,5 @@ module.exports = {
   getAdminUserInfo,
   adminLogin,
   getCreditHistory,
+  forgotPasswordSellerController,
 };
