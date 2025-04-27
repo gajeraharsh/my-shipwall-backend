@@ -14,6 +14,10 @@ const IncentivePayoutModel = require("../models/IncentivePayout");
 const ExcelJS = require("exceljs");
 const fs = require("fs");
 const path = require("path");
+const { calculateTotalRewardByProduct } = require("../utils/helperFunction");
+const User = require("../models/User");
+const CustomerRewardCredit = require("../models/CustomerRewardCredit");
+const RewardModel = require("../models/Rewards");
 
 const createOrderService = async (userId) => {
   const cart = await Cart.findOne({ user: userId }).populate(
@@ -572,10 +576,16 @@ const getIncentivePercentage = async (salePerson, finalTotal) => {
 };
 
 const updateOrderStatusService = async (orderId, newStatus, changedBy) => {
-  const order = await Order.findById(orderId).populate({
-    path: "user",
-    select: "_id id salePerson",
-  });
+  const order = await Order.findById(orderId).populate([
+    {
+      path: "user",
+      select: "_id id salePerson",
+    },
+    {
+      path: "products.product",
+      select: "_id id rewardPoints",
+    },
+  ]);
   if (!order) {
     throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
   }
@@ -625,6 +635,47 @@ const updateOrderStatusService = async (orderId, newStatus, changedBy) => {
           percentageIncentive: incentivePercentage,
           totalIncentiveAmount: incentiveAmount,
         });
+      }
+    }
+
+    // For user rewards
+    if (newStatus == "delevered") {
+      const generalSettings = await GeneralSettingModel.findOne();
+      const methodOfReward = generalSettings?.methodOfReward;
+      if (methodOfReward) {
+        let rewardCount = 0;
+        if (methodOfReward == "product") {
+          rewardCount = await calculateTotalRewardByProduct(order);
+        }
+
+        if (methodOfReward == "orderValue") {
+          const reward = await RewardModel.findOne({
+            minAmount: { $lte: order.finalTotal },
+            maxAmount: { $gte: order.finalTotal },
+          }).sort({ minAmount: 1 });
+
+          rewardCount = reward.rewardPoints;
+        }
+
+        if (rewardCount > 0) {
+          await CustomerRewardCredit.create({
+            amount: rewardCount,
+            user: order.user,
+            type: "credit",
+            description: `Rwards for Order ${order?.id}`,
+            referenceId: order._id,
+          });
+
+          const user = await User.findByIdAndUpdate(
+            order.user,
+            {
+              $inc: {
+                rewards: Number(rewardCount),
+              },
+            },
+            { new: true }
+          );
+        }
       }
     }
   }

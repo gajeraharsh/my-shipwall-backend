@@ -11,6 +11,7 @@ const getGeneralSettings = async () => {
       return {
         generalshippingcost: 0,
         returnDays: 0,
+        methodOfReward: 0,
       };
     }
 

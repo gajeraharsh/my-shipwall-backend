@@ -5,17 +5,21 @@ const paginate = require("./plugins/paginate");
 const { Schema } = mongoose;
 
 const generalSettingSchema = new Schema(
-    {
-        generalshippingcost: {
-            type: Number,
-        },
-        returnDays: {
-            type: Number,
-        },
+  {
+    generalshippingcost: {
+      type: Number,
     },
-    {
-        timestamps: true,
-    }
+    returnDays: {
+      type: Number,
+    },
+    methodOfReward: {
+      type: String,
+      enum: ["product", "orderValue"],
+    },
+  },
+  {
+    timestamps: true,
+  }
 );
 
 generalSettingSchema.plugin(paginate);

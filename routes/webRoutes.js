@@ -18,6 +18,7 @@ const {
   updateUser,
   verifyOtp,
   getCreditHistory,
+  getRewardCreditHistory,
 } = require("../controllers/userController");
 const { getSeries, getWebSeries } = require("../controllers/seriesController");
 const {
@@ -88,6 +89,18 @@ const {
   sendMessage,
 } = require("../controllers/chatController");
 
+const { getRewardProducts } = require("../controllers/rewardProductController");
+const {
+  addToCartReward,
+  getCartReward,
+  removeFromCartReward,
+  saveCartRewardShippingAddress,
+} = require("../controllers/rewardCartController");
+const {
+  createRewardOrder,
+  getRewardOrders,
+} = require("../controllers/rewardOrderController");
+
 const router = express.Router();
 
 // Auth
@@ -132,6 +145,13 @@ router.get(
   verifyJWT,
   authorizeRoles("user"),
   getCreditHistory
+);
+
+router.get(
+  "/reward-credit-history",
+  verifyJWT,
+  authorizeRoles("user"),
+  getRewardCreditHistory
 );
 
 // Banners
@@ -264,5 +284,21 @@ router.post(
   },
   sendAttachment
 );
+
+// Rewards module
+router.get(
+  "/rewards/products",
+  verifyJWT,
+  authorizeRoles("user"),
+  getRewardProducts
+);
+
+router.post("/rewardcart/add", verifyJWT, addToCartReward);
+router.delete("/rewardcart/remove/:productId", verifyJWT, removeFromCartReward);
+router.get("/rewardcart", verifyJWT, getCartReward);
+router.post("/rewardcart/shipping", verifyJWT, saveCartRewardShippingAddress);
+
+router.get("/rewardOrder", verifyJWT, getRewardOrders);
+router.post("/rewardOrder/create", verifyJWT, createRewardOrder);
 
 module.exports = router;

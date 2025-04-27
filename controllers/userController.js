@@ -11,6 +11,7 @@ const { generateAccessAndRefereshTokens } = require("../handlers/user");
 const { uploadFileToS3 } = require("../services/fileUploads3Service");
 const mongoose = require("mongoose");
 const CustomerWalletCredit = require("../models/CustomerWalletCredit");
+const CustomerRewardCredit = require("../models/CustomerRewardCredit");
 
 const createUser = asyncHandler(async (req, res) => {
   const { error, value } = userValidationSchema.validate(req?.body, {
@@ -983,6 +984,37 @@ const getCreditHistory = asyncHandler(async (req, res) => {
   }
 });
 
+const getRewardCreditHistory = asyncHandler(async (req, res) => {
+  try {
+    const page = req?.query?.page;
+    const limit = req?.query?.limit;
+    const query = req?.query?.search || "";
+    const userId = req.user?._id;
+
+    const creditHistory = await CustomerRewardCredit.paginate(
+      {
+        user: userId,
+      },
+      {
+        page,
+        limit,
+      }
+    );
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { creditHistory },
+          "creditHistory retrieved successfully"
+        )
+      );
+  } catch (err) {
+    throw new ApiError(500, err.message || "Could not retrieve creditHistory");
+  }
+});
+
 const forgotPasswordSellerController = asyncHandler(async (req, res) => {
   const { email } = req?.body;
   // Find the user by email
@@ -1031,4 +1063,5 @@ module.exports = {
   adminLogin,
   getCreditHistory,
   forgotPasswordSellerController,
+  getRewardCreditHistory,
 };

@@ -6,6 +6,7 @@ const createValidation = Joi.object({
     "any.required": "Color name is required.",
   }),
   returnDays: Joi.string().optional(),
+  methodOfReward: Joi.string().optional(),
 });
 
 module.exports = { createValidation };

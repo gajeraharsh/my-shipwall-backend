@@ -21,7 +21,7 @@ const createProductValidation = Joi.object({
     "string.base": "Product name must be a string.",
     "any.required": "Product name is required.",
   }),
-  productUrl: Joi.string().required().uri().messages({
+  productUrl: Joi.string().optional().uri().messages({
     "string.base": "Product URL must be a string.",
     "string.uri": "Product URL must be a valid URL.",
     "any.required": "Product URL is required.",
@@ -49,6 +49,10 @@ const createProductValidation = Joi.object({
   stock: Joi.string().required().messages({
     "string.base": "Stock must be a string.",
     "any.required": "Stock is required.",
+  }),
+  rewardPoints: Joi.number().required().messages({
+    "string.base": "Reward points must be a number.",
+    "any.required": "Reward points is required.",
   }),
   featureProduct: Joi.string().optional().messages({
     "string.base": "Feature product must be a string.",
@@ -130,6 +134,10 @@ const updateProductValidation = Joi.object({
   dataSheet: Joi.string()
     .optional()
     .messages({ "string.base": "Data sheet must be a string." }),
+  rewardPoints: Joi.number().required().messages({
+    "string.base": "Reward points must be a number.",
+    "any.required": "Reward points is required.",
+  }),
 });
 
 const deleteProductValidation = Joi.object({
