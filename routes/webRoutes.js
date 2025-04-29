@@ -99,6 +99,7 @@ const {
 const {
   createRewardOrder,
   getRewardOrders,
+  getRewardOrderById,
 } = require("../controllers/rewardOrderController");
 
 const router = express.Router();
@@ -300,5 +301,6 @@ router.post("/rewardcart/shipping", verifyJWT, saveCartRewardShippingAddress);
 
 router.get("/rewardOrder", verifyJWT, getRewardOrders);
 router.post("/rewardOrder/create", verifyJWT, createRewardOrder);
+router.post("/rewardOrder/:id", verifyJWT, getRewardOrderById);
 
 module.exports = router;

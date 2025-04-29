@@ -6,6 +6,7 @@ const {
   getRewardById,
   getRewards,
   updateReward,
+  getRewardCreditHistory,
 } = require("../controllers/rewardController");
 
 const {
@@ -16,6 +17,12 @@ const {
   updateRewardProduct,
 } = require("../controllers/rewardProductController");
 
+const {
+  getRewardOrders,
+  getRewardOrderById,
+  updateRewardOrderStatusController,
+} = require("../controllers/rewardOrderController");
+
 const { verifyJWT } = require("../middlewares/auth.middleware");
 const upload = require("../middlewares/upload");
 
@@ -25,6 +32,13 @@ router.route("/").post(verifyJWT, createReward);
 
 router.route("/").get(verifyJWT, getRewards);
 router.route("/products").get(verifyJWT, getRewardProducts);
+router.route("/reward-orders").get(verifyJWT, getRewardOrders);
+router.route("/reward-orders/:id").get(verifyJWT, getRewardOrderById);
+router
+  .route("/reward-orders/:id")
+  .put(verifyJWT, updateRewardOrderStatusController);
+
+router.route('/user-reward/:id').get(getRewardCreditHistory)
 
 
 router.route("/:id").get(verifyJWT, getRewardById);
@@ -46,7 +60,6 @@ router.route("/products").post(
   createRewardProduct
 );
 
-
 router.route("/products/:id").get(verifyJWT, getRewardProductById);
 
 router.put(
@@ -62,5 +75,7 @@ router.put(
   updateRewardProduct
 );
 router.delete("/products/:id", verifyJWT, deleteRewardProduct);
+
+// Reward Orders
 
 module.exports = router;

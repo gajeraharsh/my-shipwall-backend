@@ -967,6 +967,7 @@ const getCreditHistory = asyncHandler(async (req, res) => {
       {
         page,
         limit,
+        sortBy: "createdAt:desc",
       }
     );
 
@@ -998,6 +999,7 @@ const getRewardCreditHistory = asyncHandler(async (req, res) => {
       {
         page,
         limit,
+        sortBy: "createdAt:desc",
       }
     );
 

@@ -250,7 +250,6 @@ const updateCustomer = asyncHandler(async (req, res) => {
   //   _id: { $ne: userId },
   // });
 
-
   // if (userNameExists) {
   //   throw new ApiError(409, "UserName already exists.");
   // }
@@ -338,6 +337,7 @@ const getCustomerOrders = asyncHandler(async (req, res) => {
     const orders = await Order.paginate(where, {
       page,
       limit,
+      sortBy: "createdAt:desc",
     });
 
     if (!orders || orders.length === 0) {
@@ -949,6 +949,74 @@ const dashboardMatrix = asyncHandler(async (req, res) => {
   });
 });
 
+const getTopCustomersPerformance = async (req, res) => {
+  try {
+    const salePersonId = req?.user?._id;
+    const { startDate, endDate } = req.query;
+
+    const dateMatch = {};
+    if (startDate) dateMatch.$gte = new Date(startDate);
+    if (endDate) dateMatch.$lte = new Date(endDate);
+
+    const matchConditions = {};
+
+    if (startDate || endDate) {
+      matchConditions.createdAt = dateMatch;
+    }
+
+    const topCustomers = await Order.aggregate([
+      {
+        $match: matchConditions, // Only filter based on Order fields
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "userInfo",
+        },
+      },
+      { $unwind: "$userInfo" },
+      {
+        $match: {
+          "userInfo.salePerson": salePersonId, // Restrict based on sales person
+        },
+      },
+      {
+        $group: {
+          _id: "$user",
+          orderCount: { $sum: 1 },
+          totalAmount: { $sum: "$finalTotal" },
+          fullName: { $first: "$userInfo.fullName" },
+          email: { $first: "$userInfo.email" },
+        },
+      },
+      { $sort: { orderCount: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          _id: 0,
+          customerName: "$fullName",
+          email: 1,
+          orderCount: 1,
+          totalAmount: 1,
+        },
+      },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: topCustomers,
+    });
+  } catch (error) {
+    console.error("Error in getTopCustomersPerformance:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   createCustomer,
   getCustomers,
@@ -961,4 +1029,5 @@ module.exports = {
   getCustomerPotentialReport,
   createUserByAdmin,
   dashboardMatrix,
+  getTopCustomersPerformance,
 };

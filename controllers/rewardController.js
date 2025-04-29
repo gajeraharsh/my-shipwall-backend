@@ -8,6 +8,7 @@ const {
   getRewardsByIdService,
   updateRewardById,
 } = require("../services/rewardService");
+const CustomerRewardCredit = require("../models/CustomerRewardCredit");
 
 const createReward = asyncHandler(async (req, res) => {
   try {
@@ -69,10 +70,52 @@ const deleteReward = asyncHandler(async (req, res) => {
   }
 });
 
+//reward activity
+const getRewardCreditHistory = asyncHandler(async (req, res) => {
+  try {
+    const page = req?.query?.page;
+    const limit = req?.query?.limit;
+    const query = req?.query?.search || "";
+    const userId = req.params?.id;
+
+    console.log(userId, "userId");
+
+    const creditHistory = await CustomerRewardCredit.paginate(
+      {
+        user: userId,
+      },
+      {
+        page,
+        limit,
+        populate: [
+          {
+            path: "referenceId",
+            select: "_id id orderStatus finalTotal createdAt",
+          },
+        ],
+        sortBy: "createdAt:desc",
+      }
+    );
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { creditHistory },
+          "creditHistory retrieved successfully"
+        )
+      );
+  } catch (err) {
+    throw new ApiError(500, err.message || "Could not retrieve creditHistory");
+  }
+});
+
 module.exports = {
   createReward,
   getRewards,
   getRewardById,
   updateReward,
   deleteReward,
+  getRewardCreditHistory,
 };

@@ -105,7 +105,7 @@ const fetchRewardOrders = async (req) => {
       paymentStatus,
     } = req.query;
 
-    let query = { user: req?.user?._id };
+    let query = {};
 
     if (search) {
       query.$or = [
@@ -137,7 +137,6 @@ const fetchRewardOrders = async (req) => {
     if (paymentStatus) {
       query.paymentStatus = paymentStatus;
     }
-
     // Fetch orders with returnOrder virtual
     const orders = await RewardOrder.paginate(query, {
       page,
@@ -147,6 +146,10 @@ const fetchRewardOrders = async (req) => {
           path: "user",
           select: "fullName id phone email",
         },
+        { path: "shippingDetails.city", select: "name _id" },
+        { path: "shippingDetails.state", select: "name _id" },
+        { path: "products.product", select: "name _id" },
+
       ],
       sortBy: "createdAt:desc",
     });
@@ -175,11 +178,13 @@ const updateRewardOrderStatusService = async (
   }
 
   const validStatuses = [
+    "initiated",
+    "Received",
+    "Cancelled",
     "packing",
     "dispatch",
-    "delevered",
     "InLogistic",
-    "Cancelled",
+    "delevered",
   ];
 
   if (!validStatuses.includes(newStatus)) {
@@ -200,8 +205,47 @@ const updateRewardOrderStatusService = async (
   return order;
 };
 
+const getRewardOrderByIdService = async (orderId) => {
+  try {
+    const order = await RewardOrder.findOne({ _id: orderId })
+      .populate({
+        path: "products.product",
+        model: "RewardProduct", // or "RewardProduct" if needed
+        select: "name id status price description thumbImage",
+      })
+      .populate({
+        path: "user",
+        select:
+          "fullName email phone billingAddress deliveryAddress id _id businessName phone email gstNumber",
+      })
+      .populate({
+        path: "shippingDetails.state",
+        model: "State",
+        select: "name", // or whatever fields you want from State
+      })
+      .populate({
+        path: "shippingDetails.city",
+        model: "City",
+        select: "name", // or whatever fields you want from City
+      });
+
+    if (!order) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Reward order not found");
+    }
+
+    return order;
+  } catch (err) {
+    console.log(err);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Error retrieving reward order details"
+    );
+  }
+};
+
 module.exports = {
   createRewardOrderService,
   fetchRewardOrders,
   updateRewardOrderStatusService,
+  getRewardOrderByIdService,
 };

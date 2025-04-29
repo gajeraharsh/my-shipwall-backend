@@ -11,6 +11,7 @@ const {
   updateCustomer,
   createUserByAdmin,
   dashboardMatrix,
+  getTopCustomersPerformance,
 } = require("../../controllers/seller/customerController");
 
 const { verifyJWT } = require("../../middlewares/auth.middleware");
@@ -27,6 +28,8 @@ router.route("/").post(createCustomer);
 router.route("/create-user-by-admin").post(verifyJWT, createUserByAdmin);
 router.route("/").get(verifyJWT, getCustomers);
 router.route("/sale-dashboard-matrix").get(verifyJWT, dashboardMatrix);
+router.route("/top-customer-performance").get(verifyJWT, getTopCustomersPerformance);
+
 
 router.route("/store-visit").get(verifyJWT, getStoreVisits);
 router.route("/potential-report").get(verifyJWT, getCustomerPotentialReport);
