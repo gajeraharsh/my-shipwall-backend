@@ -85,6 +85,7 @@ const createOrderReturnService = async (userId, req) => {
     status: "Initiated",
     note: "Return order Initiated",
     timestamp: new Date(),
+    updatedBy: userId,
   });
 
   await newOrder.save();
@@ -143,6 +144,8 @@ const fetchAllReturnOrders = async (req) => {
     const page = parseInt(req?.query?.page) || 1;
     const limit = parseInt(req?.query?.limit) || 10;
     const skip = (page - 1) * limit;
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "desc" ? -1 : -1;
 
     const {
       search = "",
@@ -193,6 +196,18 @@ const fetchAllReturnOrders = async (req) => {
       matchStage.createdAt = { $lte: new Date(endDate) };
     }
 
+    const sortFieldMap = {
+      fullName: "user.fullName",
+      phone: "user.phone",
+      userId: "user.id",
+      createdAt: "createdAt",
+      returnStatus: "returnStatus",
+      // Add any new sort fields here
+    };
+
+    const resolvedSortField = sortFieldMap[sortField] || sortField;
+    const sortOptions = { [resolvedSortField]: sortOrder };
+    console.log(sortOptions, "sortOptions");
     const pipeline = [
       { $match: matchStage },
       {
@@ -227,7 +242,7 @@ const fetchAllReturnOrders = async (req) => {
 
     // Paginate and sort
     pipeline.push(
-      { $sort: { createdAt: -1 } },
+      { $sort: sortOptions },
       { $skip: skip },
       { $limit: limit },
       {
@@ -236,6 +251,7 @@ const fetchAllReturnOrders = async (req) => {
           id: 1,
           returnStatus: 1,
           createdAt: 1,
+          updatedAt: 1,
           user: {
             _id: 1,
             id: 1, // Include the `id` from `user`

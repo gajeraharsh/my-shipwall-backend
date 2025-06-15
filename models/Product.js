@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const paginate = require("./plugins/paginate");
+const paginate = require("./plugins/aggregatePaginate");
 
 const productSchema = new Schema(
   {
@@ -22,13 +22,9 @@ const productSchema = new Schema(
     hsnCode: {
       type: Schema.Types.ObjectId,
       ref: "HsnciodeModel",
-      required: true,
+      required: false,
     },
     productName: {
-      type: String,
-      required: true,
-    },
-    productUrl: {
       type: String,
       required: true,
     },
@@ -133,11 +129,26 @@ const productSchema = new Schema(
       required: true,
       default: 0,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+productSchema.methods.softDelete = async function () {
+  this.isDeleted = true;
+  this.deletedAt = new Date();
+  await this.save();
+};
+
 
 productSchema.plugin(paginate);
 

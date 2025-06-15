@@ -5,13 +5,13 @@ const createBrandValidation = Joi.object({
     "string.base": "Brand name must be a string.",
     "any.required": "Brand name is required.",
   }),
-  pageTitle: Joi.string().messages({
+  pageTitle: Joi.string().optional().messages({
     "string.base": "Page title must be a string.",
   }),
-  metaDescription: Joi.string().messages({
+  metaDescription: Joi.string().optional().messages({
     "string.base": "Meta description must be a string.",
   }),
-  metaKeywords: Joi.string().messages({
+  metaKeywords: Joi.string().optional().messages({
     "string.base": "Meta keywords must be a string.",
   }),
   displayHome: Joi.boolean().messages({

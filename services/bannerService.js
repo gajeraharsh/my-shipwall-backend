@@ -33,6 +33,16 @@ const fetchBanners = async (req) => {
     const limit = req?.query?.limit;
     const query = req?.query?.search || "";
 
+    // Expect sortField and sortOrder in query
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "desc" ? "desc" : "asc";
+
+    const sortBy = `${sortField}:${sortOrder}`;
+
+    // Build Mongoose sort object
+    const sortOptions = {};
+    sortOptions[sortField] = sortOrder;
+
     const banners = await Banner.paginate(
       {
         bannerName: { $regex: query, $options: "i" },
@@ -40,6 +50,7 @@ const fetchBanners = async (req) => {
       {
         page,
         limit,
+        sortBy
       }
     );
 

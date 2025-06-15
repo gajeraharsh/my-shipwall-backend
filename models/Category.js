@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const paginate = require('./plugins/paginate');
+const paginate = require('./plugins/aggregatePaginate');
 
 const { Schema } = mongoose;
 
@@ -47,12 +47,26 @@ const categorySchema = new Schema({
     type: Number,
     required: true,
     default: 0,
-  }
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
+  deletedAt: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true,
 });
 
 categorySchema.plugin(paginate);
+
+categorySchema.methods.softDelete = async function () {
+  this.isDeleted = true;
+  this.deletedAt = new Date();
+  await this.save();
+};
 
 const Category = mongoose.model('Category', categorySchema);
 

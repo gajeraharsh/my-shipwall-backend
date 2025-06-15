@@ -3,6 +3,7 @@ const ApiError = require("../utils/apiError");
 const { status: httpStatus } = require("http-status");
 
 const { uploadFileToS3 } = require("./fileUploads3Service");
+const mongoose = require("mongoose");
 
 const createNewProduct = async (req) => {
   try {
@@ -33,7 +34,6 @@ const createNewProduct = async (req) => {
       dataSheetUrl,
     };
 
-    console.log(productData);
 
     return await Product.create(productData);
   } catch (error) {
@@ -60,6 +60,8 @@ const fetchProduct = async (req, filter) => {
     const limit = req?.query?.limit;
     const query = req?.query?.search || "";
     const sortBy = req?.query?.sortBy;
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "desc" ? "desc" : "asc";
 
     const {
       featureProduct = null,
@@ -75,37 +77,53 @@ const fetchProduct = async (req, filter) => {
     const sortOptions = {};
 
     if (sortBy === "New Added") {
-      sortOptions.createdAt = -1;
-    } else if (sortBy === "On Sale") {
-      where.stock = { $gt: 0 }; // Greater than 0
+      sortOptions.createdAt = "desc";
+    } else if (sortField == "brandName") {
+      sortOptions["brand.brandName"] = sortOrder;
+    } else if (sortField == "categoryName") {
+      sortOptions["category.categoryName"] = sortOrder;
+    } else if (sortField == "seriesName") {
+      sortOptions["seriesName"] = sortOrder;
+    } else {
+      sortOptions[sortField] = sortOrder;
     }
 
-    if (featureProduct) {
-      where["featureProduct"] = featureProduct;
+    // Convert sortOptions object to string for aggregation paginate
+    const sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
+
+    if (featureProduct == "true") {
+      where["featureProduct"] = true;
     }
 
-    if (newArrivals) {
-      where["newArrivals"] = newArrivals;
+    if (newArrivals == "true") {
+      where["newArrivals"] = true;
     }
 
     if (seriesId) {
-      where["series"] = seriesId;
+      where["series._id"] = new mongoose.Types.ObjectId(seriesId);
     }
 
     if (categoryId) {
-      where["category"] = categoryId;
+      where["category._id"] = new mongoose.Types.ObjectId(categoryId);
     }
-
+    console.log({
+      productName: { $regex: query, $options: "i" },
+      isDeleted: false, // Ensure we only fetch non-deleted products
+      ...where,
+    });
     /// @ts-ignore
     const product = await Product.paginate(
       {
         productName: { $regex: query, $options: "i" },
+        isDeleted: false, // Ensure we only fetch non-deleted products
         ...where,
       },
       {
         page,
         limit,
-        sort: sortOptions,
+        sortBy: sortByString,
         populate: [
           { path: "brand", select: "_id brandName" },
           { path: "category", select: "_id categoryName" },
@@ -122,7 +140,7 @@ const fetchProduct = async (req, filter) => {
 
     return product;
   } catch (err) {
-    console.log(err)
+    console.log(err);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       "Error retrieving products"
@@ -132,7 +150,10 @@ const fetchProduct = async (req, filter) => {
 
 const fetchProductDropdown = async () => {
   try {
-    const product = await Product.find({}, { _id: 1, productName: 1 });
+    const product = await Product.find(
+      { isDeleted: false },
+      { _id: 1, productName: 1 }
+    );
 
     if (!product || product.length === 0) {
       throw new ApiError(httpStatus.NOT_FOUND, "No product found");
@@ -231,8 +252,9 @@ const updateProductById = async (productId, req) => {
 
 const deleteProductById = async (productId) => {
   try {
-    const product = await Product.findByIdAndDelete(productId);
+    const product = await Product.findById(productId);
     if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+    await product.softDelete();
     return product;
   } catch (err) {
     throw new ApiError(
@@ -327,14 +349,15 @@ const fetchAllProducts = async (req) => {
     const { brandId = null, categoryId = null, seriesId = null } = req?.query;
 
     const filter = {
+      isDeleted: false,
       ...(brandId && {
-        brand: brandId,
+        brand: new mongoose.Types.ObjectId(brandId),
       }),
       ...(categoryId && {
-        category: categoryId,
+        category: new mongoose.Types.ObjectId(categoryId),
       }),
       ...(seriesId && {
-        series: seriesId,
+        series: new mongoose.Types.ObjectId(seriesId),
       }),
     };
     const options = {
@@ -346,6 +369,7 @@ const fetchAllProducts = async (req) => {
 
     return products.results;
   } catch (err) {
+    console.log(err);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       "Error retrieving products"

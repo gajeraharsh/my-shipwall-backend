@@ -81,7 +81,8 @@ const calculateTotals = async (cart) => {
       ? generalSettings.generalshippingcost
       : 0;
 
-  const totalAmount = subtotal + totalTaxAmount + shippingFee;
+  // const totalAmount = subtotal + totalTaxAmount + shippingFee;
+  const totalAmount = subtotal + shippingFee;
   const subTotalIncTax = subtotal + totalTaxAmount;
 
   return {
@@ -130,7 +131,7 @@ const addToReturnCartService = async (
   const combinedQty = returnQty + alreadyReturningQty;
 
   // Only throw error if exceeding ordered quantity
-  if (combinedQty > totalOrderedQty) {
+  if (returnQty > totalOrderedQty) {
     throw new ApiError(
       400,
       "You can only return up to the quantity originally ordered for this item."
@@ -160,7 +161,7 @@ const addToReturnCartService = async (
 
   // Step 7: Add or update the return cart
   if (existingIndex !== -1) {
-    returnCart.products[existingIndex].quantity += returnQty;
+    returnCart.products[existingIndex].quantity = returnQty;
     returnCart.products[existingIndex].subtotal += subtotal;
     returnCart.products[existingIndex].boxQuantity = boxQty;
     returnCart.products[existingIndex].boxPrice = pricePerItem;
@@ -254,6 +255,7 @@ const getCartService = async (userId, orderId) => {
       series: product.series?.seriesName || "Unknown Series",
       category: product.category?.categoryName || "Unknown Category",
       boxQuantity: product?.boxQuantity,
+      purchasedQty: item.quantity,
     });
   }
 

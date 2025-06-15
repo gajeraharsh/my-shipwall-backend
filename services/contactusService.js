@@ -15,10 +15,15 @@ const fetchContactMessages = async (req) => {
       ? { name: { $regex: req.query.search, $options: "i" } }
       : {};
 
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "desc" ? "desc" : "asc";
+
+    const sortBy = `${sortField}:${sortOrder}`;
+
     const options = {
       page,
       limit,
-      sort: { createdAt: -1 },
+      sortBy: sortBy,
     };
 
     const contacts = await ContactUs.paginate(query, options);

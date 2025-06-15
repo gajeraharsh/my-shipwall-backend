@@ -123,7 +123,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
 
     const seriesWithProducts = await Product.aggregate([
       { $match: matchStage },
-    
+
       // Lookup color details
       {
         $lookup: {
@@ -139,7 +139,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           preserveNullAndEmptyArrays: true,
         },
       },
-    
+
       // Lookup series details
       {
         $lookup: {
@@ -154,7 +154,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           path: "$seriesDetails",
         },
       },
-    
+
       // Lookup category details
       {
         $lookup: {
@@ -169,7 +169,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           path: "$categoryDetails",
         },
       },
-    
+
       // Group products by series
       {
         $group: {
@@ -187,6 +187,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           products: {
             $push: {
               _id: "$_id",
+              productName: "$productName",
               modelNo: "$modelNo",
               watt: "$watt",
               bodyColor: "$bodyColor",
@@ -206,7 +207,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           },
         },
       },
-    
+
       // Sort products inside each series group
       {
         $project: {
@@ -224,7 +225,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
           },
         },
       },
-    
+
       // Finally, sort series by their position
       {
         $sort: {
@@ -232,7 +233,6 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
         },
       },
     ]);
-    
 
     res.status(httpStatus.OK).json({ series: seriesWithProducts });
   } catch (err) {
@@ -252,6 +252,7 @@ const getOrderProductsGroupedBySeries = asyncHandler(async (req, res) => {
       throw new ApiError(httpStatus.BAD_REQUEST, "Order ID is required");
     }
 
+    // Fetch order
     const order = await Order.findById(orderId).lean();
     if (!order || !order.products || order.products.length === 0) {
       return res
@@ -259,10 +260,16 @@ const getOrderProductsGroupedBySeries = asyncHandler(async (req, res) => {
         .json({ message: "No products found in this order" });
     }
 
-    const productIds = order.products.map(
-      (p) => new mongoose.Types.ObjectId(p.product)
-    );
+    // Create product ID array and qty map
+    const productIds = [];
+    const productQtyMap = {};
+    order.products.forEach((p) => {
+      const productIdStr = p.product.toString();
+      productIds.push(new mongoose.Types.ObjectId(productIdStr));
+      productQtyMap[productIdStr] = p.quantity || 0;
+    });
 
+    // Build match conditions
     const matchStage = {
       _id: { $in: productIds },
       status: "Published",
@@ -276,6 +283,7 @@ const getOrderProductsGroupedBySeries = asyncHandler(async (req, res) => {
       matchStage.brand = new mongoose.Types.ObjectId(brandId);
     }
 
+    // Run aggregation
     const result = await Product.aggregate([
       { $match: matchStage },
 
@@ -362,7 +370,21 @@ const getOrderProductsGroupedBySeries = asyncHandler(async (req, res) => {
       },
     ]);
 
-    res.status(httpStatus.OK).json({ series: result });
+    // Add qty to each product
+    const finalResult = result.map((series) => {
+      const updatedProducts = series.products.map((p) => ({
+        ...p,
+        qty: productQtyMap[p._id.toString()] || 0,
+      }));
+
+      return {
+        ...series,
+        products: updatedProducts,
+      };
+    });
+
+    // Return response
+    res.status(httpStatus.OK).json({ series: finalResult });
   } catch (err) {
     console.error(err);
     throw new ApiError(

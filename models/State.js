@@ -16,6 +16,14 @@ const StateSchema = new mongoose.Schema(
       trim: true,
       default: "india",
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -24,6 +32,11 @@ const StateSchema = new mongoose.Schema(
 
 StateSchema.plugin(incrementId);
 StateSchema.plugin(paginate);
+StateSchema.methods.softDelete = async function () {
+  this.isDeleted = true;
+  this.deletedAt = new Date();
+  await this.save();
+};
 
 const StateModel = mongoose.model("State", StateSchema);
 

@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const paginate = require("./plugins/paginate");
+const paginate = require("./plugins/aggregatePaginate");
 
 const seriesSchema = new mongoose.Schema(
   {
@@ -58,6 +58,14 @@ const seriesSchema = new mongoose.Schema(
         position: { type: Number, required: true },
       },
     ],
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -65,6 +73,11 @@ const seriesSchema = new mongoose.Schema(
 );
 
 seriesSchema.plugin(paginate);
+seriesSchema.methods.softDelete = async function () {
+  this.isDeleted = true;
+  this.deletedAt = new Date();
+  await this.save();
+};
 
 const Series = mongoose.model("Series", seriesSchema);
 

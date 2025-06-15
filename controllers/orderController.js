@@ -16,8 +16,8 @@ const ApiResponse = require("../utils/apiResponse");
 
 const createOrder = asyncHandler(async (req, res) => {
   const userId = req.user._id; // Assuming `req.user._id` is populated via authentication middleware
-
-  const order = await createOrderService(userId);
+  const balance = req.user?.balance || 0;
+  const order = await createOrderService(userId,balance);
   res
     .status(201)
     .json(new ApiResponse(201, order, "Order created successfully"));

@@ -108,12 +108,14 @@ const getCustomers = asyncHandler(async (req, res) => {
 
   // State filter
   if (state) {
-    andConditions.push({ "deliveryAddress.state": state });
+    andConditions.push({
+      "deliveryAddress.state._id": new mongoose.Types.ObjectId(state),
+    });
   }
 
   // City filter
   if (city) {
-    andConditions.push({ "deliveryAddress.city": city });
+    andConditions.push({ "deliveryAddress.city._id": new mongoose.Types.ObjectId(city) });
   }
 
   // Final query object
@@ -321,7 +323,12 @@ const getCustomerOrders = asyncHandler(async (req, res) => {
     }
 
     if (search) {
-      where.orderStatus = { $regex: search, $options: "i" };
+      where.$or = [
+        { orderStatus: { $regex: search, $options: "i" } },
+        { id: { $regex: search, $options: "i" } }
+      ];
+      ;
+      
     }
 
     if (startDate || endDate) {

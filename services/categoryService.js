@@ -2,8 +2,8 @@ const Category = require("../models/Category");
 const ApiError = require("../utils/apiError");
 const { status: httpStatus } = require("http-status");
 
-const { Request } = require("express");
 const { uploadFileToS3 } = require("./fileUploads3Service");
+const { default: mongoose } = require("mongoose");
 
 const createNewCategory = async (req) => {
   const data = req?.body;
@@ -54,15 +54,31 @@ const fetchCategories = async (req) => {
     const limit = req?.query?.limit;
     const query = req?.query?.search;
 
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "asc" ? "asc" : "desc";
+    const sortOptions = {};
+
+    if (sortField == "brandName") {
+      sortOptions["brand.brandName"] = sortOrder;
+    } else {
+      sortOptions[sortField] = sortOrder;
+    }
+
+    sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
+
     /// @ts-ignore
     const categories = await Category.paginate(
       {
         categoryName: { $regex: query ?? "", $options: "i" },
+        isDeleted: false,
       },
       {
         page,
         limit,
         populate: [{ path: "brand", select: "_id brandName" }],
+        sortBy: sortByString,
       }
     );
 
@@ -82,15 +98,28 @@ const fetchCategories = async (req) => {
 const fetchCategoriesDropdown = async (req) => {
   try {
     const filter = req.query.search
-      ? { categoryName: { $regex: req.query.search, $options: "i" } }
-      : {};
+      ? {
+          isDeleted: false,
+          categoryName: { $regex: req.query.search, $options: "i" },
+        }
+      : {
+          isDeleted: false,
+        };
+
+    const brand = req?.query?.brand;
+
+    if (brand) {
+      filter.brand = new mongoose.Types.ObjectId(brand);
+    }
+
+    console.log(filter,"filter new");
 
     const options = {
       page: Number(req.query.page) || 1,
       limit: Number(req.query.limit) || 5,
       sortBy: "categoryName:asc", // Optional sorting
       select: "_id categoryName",
-      pagination: true, // Set to false if you want all results without pagination
+      pagination: false,
     };
     // @ts-ignore
     const categories = await Category.paginate(filter, options);
@@ -100,6 +129,7 @@ const fetchCategoriesDropdown = async (req) => {
     }
     return categories;
   } catch (err) {
+    console.log(err)
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       "Error retrieving categories"
@@ -143,9 +173,12 @@ const updateCategoryIdById = async (categoryId, req) => {
 
 const deleteCategoryIdById = async (categoryId) => {
   try {
-    const category = await Category.findByIdAndDelete(categoryId);
+    const category = await Category.findById(categoryId);
     if (!category)
       throw new ApiError(httpStatus.NOT_FOUND, "Category not found");
+
+    await category.softDelete();
+
     return category;
   } catch (err) {
     throw new ApiError(
@@ -161,8 +194,9 @@ const fetchAllCategories = async (req) => {
 
     const filter = {
       ...(brandId && {
-        brand: brandId,
+        brand: new mongoose.Types.ObjectId(brandId),
       }),
+      isDeleted: false,
     };
 
     const options = {
@@ -187,9 +221,10 @@ const fetchAllWebCategories = async (req) => {
 
     const filter = {
       ...(brandId && {
-        brand: brandId,
+        brand: new mongoose.Types.ObjectId(brandId),
       }),
       status: "Published",
+      isDeleted: false,
     };
 
     const options = {
@@ -243,5 +278,5 @@ module.exports = {
   deleteCategoryIdById,
   fetchAllCategories,
   updateCategoryOrderService,
-  fetchAllWebCategories
+  fetchAllWebCategories,
 };

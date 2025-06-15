@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const paginate = require("./plugins/paginate");
+const paginate = require("./plugins/aggregatePaginate");
 const incrementId = require("./plugins/incrementId");
 const crypto = require("crypto"); // For generating OTP
 const nodemailer = require("nodemailer");
@@ -24,10 +24,12 @@ const userSchema = new Schema(
     email: {
       type: String,
       required: true,
+      trim: true,
     },
     phone: {
       type: String,
       required: true,
+      trim: true,
     },
     altContactNumber: {
       type: String,
@@ -218,6 +220,14 @@ const userSchema = new Schema(
       default: "Pending",
       enum: ["Active", "Pending", "Rejected", "Blocked"],
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -381,6 +391,12 @@ userSchema.methods.generateRefreshToken = function () {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
     }
   );
+};
+
+userSchema.methods.softDelete = async function () {
+  this.isDeleted = true;
+  this.deletedAt = new Date();
+  await this.save();
 };
 
 userSchema.plugin(paginate);

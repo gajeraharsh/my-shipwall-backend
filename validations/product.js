@@ -13,7 +13,7 @@ const createProductValidation = Joi.object({
     "string.base": "Series ID must be a string.",
     "any.required": "Series is required.",
   }),
-  hsnCode: Joi.string().required().messages({
+  hsnCode: Joi.string().optional().messages({
     "string.base": "HSN Code must be a string.",
     "any.required": "HSN Code is required.",
   }),

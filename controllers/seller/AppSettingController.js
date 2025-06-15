@@ -18,6 +18,8 @@ const {
   updateCityById,
   updateIncentiveById,
   updateStateById,
+  fetchStatesForWeb,
+  fetchCitiesForWeb,
 } = require("../../services/Seller/SettingService");
 
 
@@ -30,7 +32,7 @@ const createStateController = asyncHandler(async (req, res) => {
 });
 
 const getStatesController = asyncHandler(async (req, res) => {
-  const states = await fetchStates(req);
+  const states = await fetchStatesForWeb(req);
   return res
     .status(200)
     .json(new ApiResponse(200, { states }, "States retrieved successfully"));
@@ -92,7 +94,7 @@ const createCityController = asyncHandler(async (req, res) => {
 });
 
 const getCitiesController = asyncHandler(async (req, res) => {
-  const cities = await fetchCities(req);
+  const cities = await fetchCitiesForWeb(req);
   return res
     .status(200)
     .json(new ApiResponse(200, { cities }, "Cities retrieved successfully"));

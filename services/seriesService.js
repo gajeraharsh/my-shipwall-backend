@@ -3,7 +3,7 @@ const ApiError = require("../utils/apiError");
 const { status: httpStatus } = require("http-status");
 
 const { uploadFileToS3 } = require("./fileUploads3Service");
-
+const mongoose = require("mongoose");
 const createNewSeries = async (req) => {
   const seriesbody = req?.body;
   const file = req.file;
@@ -38,10 +38,41 @@ const fetchSeries = async (req, filter) => {
     const sortOptions = {};
 
     if (sortBy === "New Added") {
-      sortOptions.createdAt = -1;
+      sortOptions.createdAt = "desc"; // descending order
     } else if (sortBy === "On Sale") {
       filter.onSale = true;
+      sortOptions.createdAt = "desc"; // descending order
     }
+
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "desc" ? "desc" : "asc";
+
+    if (sortField == "brandName") {
+      sortOptions["brand.brandName"] = sortOrder;
+    }
+
+    if (sortField == "categoryName") {
+      sortOptions["category.categoryName"] = sortOrder;
+    }
+
+    if (sortField == "seriesName") {
+      sortOptions["seriesName"] = sortOrder;
+    }
+
+    if (sortField == "status") {
+      sortOptions["status"] = sortOrder;
+    }
+
+    if (sortField == "createdAt") {
+      sortOptions["createdAt"] = sortOrder;
+    }
+
+    // Convert sortOptions object to string for aggregation paginate
+    const sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
+
+    console.log("sortByString", sortByString);
 
     // @ts-ignore
     const series = await Series.paginate(
@@ -51,11 +82,12 @@ const fetchSeries = async (req, filter) => {
         ...(isDisplayHome && {
           isDisplayHome: true,
         }),
+        isDeleted: false, // Ensure we only fetch non-deleted series
       },
       {
         page,
         limit,
-        sort: sortOptions,
+        sortBy: sortByString,
         populate: [
           { path: "brand", select: "_id brandName" },
           { path: "category", select: "_id categoryName" },
@@ -84,15 +116,29 @@ const fetchSeries = async (req, filter) => {
 const fetchSeriesDropdown = async (req) => {
   try {
     const filter = req.query.search
-      ? { seriesName: { $regex: req.query.search, $options: "i" } }
-      : {};
+      ? {
+          seriesName: { $regex: req.query.search, $options: "i" },
+          isDeleted: false,
+        }
+      : { isDeleted: false };
+
+    const category = req?.query?.category;
+    const brand = req?.query?.brand;
+
+    if (category) {
+      filter.category = new mongoose.Types.ObjectId(category);
+    }
+
+    if (brand) {
+      filter.brand = new mongoose.Types.ObjectId(brand);;
+    }
 
     const options = {
       page: Number(req.query.page) || 1,
       limit: Number(req.query.limit) || 5,
       sortBy: "seriesName:asc", // Optional sorting
       select: "_id seriesName",
-      pagination: true, // Set to false if you want all results without pagination
+      pagination: false, // Set to false if you want all results without pagination
     };
     // @ts-ignore
     const series = await Series.paginate(filter, options);
@@ -165,8 +211,9 @@ const updateSeriesById = async (seriesId, req) => {
 
 const deleteSeriesById = async (seriesId) => {
   try {
-    const series = await Series.findByIdAndDelete(seriesId);
+    const series = await Series.findById(seriesId);
     if (!series) throw new ApiError(httpStatus.NOT_FOUND, "series not found");
+    await series.softDelete(); // Call the soft delete method
     return series;
   } catch (err) {
     throw new ApiError(
@@ -182,10 +229,10 @@ const fetchAllSeries = async (req) => {
 
     const filter = {
       ...(brandId && {
-        brand: brandId,
+        brand: new mongoose.Types.ObjectId(brandId),
       }),
       ...(categoryId && {
-        category: categoryId,
+        category: new mongoose.Types.ObjectId(categoryId),
       }),
     };
     const options = {

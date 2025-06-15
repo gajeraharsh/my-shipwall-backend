@@ -13,7 +13,7 @@ const createSeriesValidation = Joi.object({
     "string.base": "Series name must be a string.",
     "any.required": "Series name is required.",
   }),
-  seriesUrl: Joi.string().required().uri().messages({
+  seriesUrl: Joi.string().optional().uri().messages({
     "string.base": "Category URL must be a string.",
     "string.uri": "Category URL must be a valid URL.",
     "any.required": "Category URL is required.",

@@ -1,8 +1,7 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const paginate = require("./plugins/paginate");
+const paginate = require("./plugins/aggregatePaginate");
 const incrementId = require("./plugins/incrementId");
-const autoIncrementId = require("./plugins/autoIncrementId");
 
 const rewardOrderSchema = new Schema(
   {

@@ -356,10 +356,7 @@ const adminDashboardMatrix = asyncHandler(async (req, res) => {
       },
     },
     {
-      $unwind: {
-        path: "$stateDetails",
-        preserveNullAndEmptyArrays: true,
-      },
+      $unwind: "$stateDetails", // remove preserveNullAndEmptyArrays
     },
     {
       $project: {
@@ -451,9 +448,9 @@ const getTopSellingProducts = async (req, res) => {
           _id: 0,
           productId: "$_id",
           productName: "$productInfo.productName",
-          bodyColor:"$productInfo.bodyColor",
-          modelNo:"$productInfo.modelNo",
-          watt:"$productInfo.watt",
+          bodyColor: "$productInfo.bodyColor",
+          modelNo: "$productInfo.modelNo",
+          watt: "$productInfo.watt",
           totalAmount: 1,
           totalOrders: 1,
         },
@@ -543,8 +540,6 @@ const getTopSalesPersons = async (req, res) => {
   }
 };
 
-
-
 module.exports = {
   createAdminUser,
   getAdminUsers,
@@ -555,5 +550,5 @@ module.exports = {
   adminDashboardMatrix,
   getTopSellingProducts,
   getTopSalesPersons,
-  getTopSalesPersons
+  getTopSalesPersons,
 };

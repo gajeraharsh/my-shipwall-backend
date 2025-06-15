@@ -9,6 +9,29 @@ const createState = async (stateBody) => {
   return await State.create(stateBody);
 };
 
+const fetchStatesForWeb = async (req) => {
+  const { page = 1, limit = 5, search = "" } = req?.query;
+
+  try {
+    const states = await State.paginate(
+      {
+        name: { $regex: search, $options: "i" },
+        isDeleted: false,
+      },
+      {
+        page,
+        limit,
+      }
+    );
+    return states;
+  } catch (err) {
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Error retrieving states"
+    );
+  }
+};
+
 const fetchStates = async (req) => {
   const { page = 1, limit = 5, search = "" } = req?.query;
 
@@ -16,10 +39,12 @@ const fetchStates = async (req) => {
     const states = await State.paginate(
       {
         name: { $regex: search, $options: "i" },
+        isDeleted: false,
       },
       {
-        page,
-        limit,
+        // page,
+        // limit,
+        pagination: false,
       }
     );
     return states;
@@ -47,8 +72,10 @@ const updateStateById = async (stateId, updateData) => {
 };
 
 const deleteStateById = async (stateId) => {
-  const state = await State.findByIdAndDelete(stateId);
+  const state = await State.findById(stateId);
   if (!state) throw new ApiError(httpStatus.NOT_FOUND, "State not found");
+
+  await await state.softDelete();
   return state;
 };
 
@@ -57,20 +84,53 @@ const createCity = async (cityBody) => {
   return await City.create(cityBody);
 };
 
-const fetchCities = async (req) => {
-  const { page = 1, limit = 5, search = "" } = req?.query;
+const fetchCitiesForWeb = async (req) => {
+  const { page = 1, limit = 5, search = "", state = null } = req?.query;
+
+  const filter = {
+    name: { $regex: search, $options: "i" },
+    isDeleted: false,
+  };
+
+  if (state) {
+    filter.state = state;
+  }
 
   try {
-    const cities = await City.paginate(
-      {
-        name: { $regex: search, $options: "i" },
-      },
-      {
-        page,
-        limit,
-        populate: [{ path: "state", select: "_id name" }],
-      }
+    const cities = await City.paginate(filter, {
+      page,
+      limit,
+      populate: [{ path: "state", select: "_id name" }],
+    });
+    return cities;
+  } catch (err) {
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Error retrieving cities"
     );
+  }
+};
+
+
+const fetchCities = async (req) => {
+  const { page = 1, limit = 5, search = "", state = null } = req?.query;
+
+  const filter = {
+    name: { $regex: search, $options: "i" },
+    isDeleted: false,
+  };
+
+  if (state) {
+    filter.state = state;
+  }
+
+  try {
+    const cities = await City.paginate(filter, {
+      // page,
+      // limit,
+      pagination: false,
+      populate: [{ path: "state", select: "_id name" }],
+    });
     return cities;
   } catch (err) {
     throw new ApiError(
@@ -96,8 +156,11 @@ const updateCityById = async (cityId, updateData) => {
 };
 
 const deleteCityById = async (cityId) => {
-  const city = await City.findByIdAndDelete(cityId);
+  const city = await City.findById(cityId);
   if (!city) throw new ApiError(httpStatus.NOT_FOUND, "City not found");
+
+  await await city.softDelete();
+
   return city;
 };
 
@@ -203,4 +266,6 @@ module.exports = {
   getIncentiveById,
   updateIncentiveById,
   deleteIncentiveById,
+  fetchStatesForWeb,
+  fetchCitiesForWeb
 };

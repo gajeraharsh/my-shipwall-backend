@@ -19,14 +19,25 @@ const fetchColorMasterService = async (req) => {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
     const query = req?.query?.search;
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "asc" ? "asc" : "desc";
+    const sortOptions = {};
+
+    sortOptions[sortField] = sortOrder;
+
+    sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
 
     const colorsMasters = await ColorMaster.paginate(
       {
         colorName: { $regex: query, $options: "i" },
+        isDeleted: false,
       },
       {
         page,
         limit,
+        sortBy: sortByString,
       }
     );
 
@@ -46,14 +57,23 @@ const fetchColorMasterService = async (req) => {
 const fetchColorMasterDropdown = async (req) => {
   try {
     const filter = req.query.search
-      ? { colorName: { $regex: req.query.search, $options: "i" } }
-      : {};
+      ? {
+          colorName: { $regex: req.query.search, $options: "i" },
+          isDeleted: false,
+        }
+      : { isDeleted: false };
 
     const options = {
-      page: Number(req.query.page) || 1,
-      limit: Number(req.query.limit) || 1,
-      pagination: true,
+      pagination: false,
     };
+
+    if (req.query.page) {
+      options["page"] = Number(req.query.page);
+    }
+
+    if (req.query.limit) {
+      options["limit"] = Number(req.query.limit);
+    }
 
     const colorMasters = await ColorMaster.paginate(filter, options);
 
@@ -102,9 +122,10 @@ const updateColorMasterById = async (id, updateData) => {
 
 const deleteColorMasterById = async (id) => {
   try {
-    const colorMaster = await ColorMaster.findByIdAndDelete(id);
+    const colorMaster = await ColorMaster.findById(id);
     if (!colorMaster)
       throw new ApiError(httpStatus.NOT_FOUND, "Color master not found");
+    await colorMaster.softDelete();
     return colorMaster;
   } catch (err) {
     throw new ApiError(

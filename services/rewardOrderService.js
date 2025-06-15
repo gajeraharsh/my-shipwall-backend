@@ -104,6 +104,23 @@ const fetchRewardOrders = async (req) => {
       orderStatus,
       paymentStatus,
     } = req.query;
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "asc" ? "asc" : "desc";
+    const sortOptions = {};
+
+    if (sortField == "fullName") {
+      sortOptions["user.fullName"] = sortOrder;
+    } else if (sortField == "email") {
+      sortOptions["user.email"] = sortOrder;
+    } else if (sortField == "phone") {
+      sortOptions["user.phone"] = sortOrder;
+    } else {
+      sortOptions[sortField] = sortOrder;
+    }
+
+    sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
 
     let query = {};
 
@@ -149,9 +166,8 @@ const fetchRewardOrders = async (req) => {
         { path: "shippingDetails.city", select: "name _id" },
         { path: "shippingDetails.state", select: "name _id" },
         { path: "products.product", select: "name _id" },
-
       ],
-      sortBy: "createdAt:desc",
+      sortBy: sortByString,
     });
 
     return orders;
@@ -211,7 +227,7 @@ const getRewardOrderByIdService = async (orderId) => {
       .populate({
         path: "products.product",
         model: "RewardProduct", // or "RewardProduct" if needed
-        select: "name id status price description thumbImage",
+        select: "name id status price description thumbImage stock",
       })
       .populate({
         path: "user",
@@ -243,9 +259,71 @@ const getRewardOrderByIdService = async (orderId) => {
   }
 };
 
+
+const changeOrder = async (orderId, data, changedBy) => {
+  const {
+    trackingId = null,
+    trackingLink = null,
+    transportName = null,
+    sapInvoideNumber = null,
+    eWayBillNo = null,
+  } = data;
+
+  const order = await RewardOrder.findById(orderId);
+  if (!order) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
+  }
+
+  if (trackingId) {
+    order.trackingId = trackingId;
+  }
+
+  if (trackingLink) {
+    order.trackingLink = trackingLink;
+  }
+
+  if (transportName) {
+    order.transportName = transportName;
+  }
+
+  if (sapInvoideNumber) {
+    order.sapInvoideNumber = sapInvoideNumber;
+  }
+
+  if (eWayBillNo) {
+    order.eWayBillNo = eWayBillNo;
+  }
+
+  await order.save();
+
+  return order;
+};
+
+
+const UploadLr = async (orderId, file, changedBy) => {
+  const order = await RewardOrder.findById(orderId);
+  if (!order) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
+  }
+
+  let uploadlrUrl = null;
+
+  if (file) {
+    uploadlrUrl = await uploadFileToS3(file, changedBy);
+  }
+
+  order.uploadlr = uploadlrUrl;
+
+  await order.save();
+
+  return order;
+};
+
 module.exports = {
   createRewardOrderService,
   fetchRewardOrders,
   updateRewardOrderStatusService,
   getRewardOrderByIdService,
+  UploadLr,
+  changeOrder,
 };

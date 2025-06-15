@@ -298,6 +298,29 @@ const updateUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
+  const conditions = [];
+
+  if (req?.body?.email && req?.body?.email !== existingUser.email) {
+    conditions.push({ email: req?.body?.email, role: "sale_member" });
+  }
+
+  if (req?.body?.userName && req?.body?.userName !== existingUser.userName) {
+    conditions.push({ userName: req?.body?.userName, role: "sale_member" });
+  }
+
+  if (conditions.length > 0) {
+    const existing = await User.findOne({ $or: conditions });
+
+    if (existing) {
+      if (existing.email === req?.body?.email) {
+        throw new ApiError(400, "Email already in use");
+      }
+      if (existing.userName === req?.body?.userName) {
+        throw new ApiError(400, "User id already in use");
+      }
+    }
+  }
+
   const files = req.files;
 
   let profileImageUrl;
@@ -399,18 +422,19 @@ const getSaleUserDropdown = asyncHandler(async (req, res) => {
 
   // Filter by state
   if (state) {
-    where["currentAddress.state"] = state;
+    where["currentAddress.state._id"] = new mongoose.Types.ObjectId(state);
   }
 
   // Filter by city
   if (city) {
-    where["currentAddress.city"] = city;
+    where["currentAddress.city._id"] = new mongoose.Types.ObjectId(city);
   }
 
   // @ts-ignore
   const data = await User.paginate(where, {
     page,
     limit,
+    pagination: false,
     populate: [
       { path: "currentAddress.state", select: "_id name" },
       { path: "currentAddress.city", select: "_id name" },

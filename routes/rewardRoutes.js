@@ -21,6 +21,7 @@ const {
   getRewardOrders,
   getRewardOrderById,
   updateRewardOrderStatusController,
+  changeOrderController,
 } = require("../controllers/rewardOrderController");
 
 const { verifyJWT } = require("../middlewares/auth.middleware");
@@ -28,7 +29,7 @@ const upload = require("../middlewares/upload");
 
 const router = express.Router();
 
-router.route("/").post(verifyJWT, createReward);
+router.route("/").post(verifyJWT, createReward);  
 
 router.route("/").get(verifyJWT, getRewards);
 router.route("/products").get(verifyJWT, getRewardProducts);
@@ -38,8 +39,11 @@ router
   .route("/reward-orders/:id")
   .put(verifyJWT, updateRewardOrderStatusController);
 
-router.route('/user-reward/:id').get(getRewardCreditHistory)
+router
+  .route("/reward-product/change/:orderId")
+  .post(verifyJWT, changeOrderController);
 
+router.route("/user-reward/:id").get(getRewardCreditHistory);
 
 router.route("/:id").get(verifyJWT, getRewardById);
 

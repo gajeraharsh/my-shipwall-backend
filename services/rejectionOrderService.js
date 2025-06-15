@@ -78,6 +78,7 @@ const createOrderRejectionService = async (userId, req) => {
     status: "Initiated",
     note: "Rejection Initiated For Select Rejection Type",
     timestamp: new Date(),
+    updatedBy: userId,
   });
 
   await newOrder.save();
@@ -103,10 +104,13 @@ const fetchRejectionOrders = async (req) => {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
     const query = req?.query?.search || "";
-
+    console.log("query", query);
     const orders = await RejectionOrder.paginate(
       {
-        orderStatus: { $regex: query, $options: "i" },
+        $or: [
+          { orderStatus: { $regex: query, $options: "i" } },
+          { id: { $regex: query, $options: "i" } }, // if query might be a partial ObjectId string
+        ],
         user: req?.user?._id,
       },
       {
@@ -135,6 +139,9 @@ const fetchAllRejctionOrders = async (req) => {
     const page = parseInt(req?.query?.page) || 1;
     const limit = parseInt(req?.query?.limit) || 10;
     const skip = (page - 1) * limit;
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "desc" ? -1 : 1;
+    
 
     const {
       search = "",
@@ -182,6 +189,16 @@ const fetchAllRejctionOrders = async (req) => {
     } else if (endDate) {
       matchStage.createdAt = { $lte: new Date(endDate) };
     }
+    const sortFieldMap = {
+      fullName: "user.fullName",
+      phone: "user.phone",
+      userId: "user.id",
+      createdAt: "createdAt",
+      returnStatus: "returnStatus",
+    };
+
+    const resolvedSortField = sortFieldMap[sortField] || sortField;
+    const sortOptions = { [resolvedSortField]: sortOrder };
 
     const pipeline = [
       { $match: matchStage },
@@ -216,7 +233,7 @@ const fetchAllRejctionOrders = async (req) => {
 
     // Paginate and sort
     pipeline.push(
-      { $sort: { createdAt: -1 } },
+      { $sort: sortOptions },
       { $skip: skip },
       { $limit: limit },
       {
@@ -225,6 +242,7 @@ const fetchAllRejctionOrders = async (req) => {
           id: 1,
           orderStatus: 1,
           createdAt: 1,
+          updatedAt: 1,
           user: {
             _id: 1,
             id: 1, // Include the `id` from `user`

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const paginate = require("./plugins/paginate");
+const paginate = require("./plugins/aggregatePaginate");
 const incrementId = require("./plugins/incrementId");
 const autoIncrementId = require("./plugins/autoIncrementId");
 
@@ -35,6 +35,7 @@ const OrderSchema = new Schema(
     subTotalIncTax: { type: Number, required: true, default: 0 },
     shippingFee: { type: Number, required: true, default: 0 },
     taxAmount: { type: Number, required: true, default: 0 },
+    deductedBalanceAmount: { type: Number, required: true, default: 0 },
     finalTotal: { type: Number, required: true },
     orderStatus: {
       type: String,
@@ -96,6 +97,11 @@ const OrderSchema = new Schema(
     recipientId: {
       type: String,
       unique: true,
+    },
+    rewardStatus: {
+      type: String,
+      enum: ["pending", "given"],
+      default: "pending",
     },
   },
   { timestamps: true }

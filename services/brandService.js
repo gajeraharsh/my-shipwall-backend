@@ -2,7 +2,6 @@ const Brand = require("../models/Brand");
 const ApiError = require("../utils/apiError");
 const { status: httpStatus } = require("http-status");
 
-
 const createNewBrand = async (brandBody) => {
   const brandData = {
     ...brandBody,
@@ -21,17 +20,28 @@ const fetchBrands = async (req) => {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
     const query = req?.query?.search ?? "";
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "asc" ? "asc" : "desc";
+    const sortOptions = {};
+
+    sortOptions[sortField] = sortOrder;
+
+    sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
 
     const brands = await Brand.paginate(
       {
         brandName: { $regex: query, $options: "i" },
+        isDeleted: false, // Ensure we only fetch non-deleted brands
       },
       {
         page,
         limit,
-        sortBy: "position:asc",
+        sortBy: sortByString,
       }
     );
+
     // const brands = await Brand.find();
 
     if (!brands || brands.length === 0) {
@@ -50,14 +60,19 @@ const fetchBrands = async (req) => {
 const fetchBrandsDropdown = async (req) => {
   try {
     const filter = req.query.search
-      ? { brandName: { $regex: req.query.search, $options: "i" } }
-      : {};
+      ? {
+          brandName: { $regex: req.query.search, $options: "i" },
+          isDeleted: false,
+        }
+      : {
+          isDeleted: false,
+        };
 
     const options = {
       page: Number(req.query.page) || 1,
       limit: Number(req.query.limit) || 5,
       select: "_id brandName",
-      pagination: true,
+      pagination: false,
     };
 
     const brands = await Brand.paginate(filter, options);
@@ -109,8 +124,12 @@ const updateBrandById = async (brandId, updateData) => {
 
 const deleteBrandById = async (brandId) => {
   try {
-    const brand = await Brand.findByIdAndDelete(brandId);
+    const brand = await Brand.findById(brandId);
+
     if (!brand) throw new ApiError(httpStatus.NOT_FOUND, "Brand not found");
+    if (brand) {
+      brand.softDelete();
+    }
     return brand;
   } catch (err) {
     throw new ApiError(
@@ -122,10 +141,12 @@ const deleteBrandById = async (brandId) => {
 
 const fetchAllBrands = async (req) => {
   try {
-    const filter = {}; // No specific filter to get all brands
+    const filter = {
+      isDeleted: false,
+    }; // No specific filter to get all brands
     const options = {
       sortBy: "position:asc", // Sort by position in ascending order
-      pagination: false, // Fetch all brands without pagination
+      pagination: false,
     };
 
     const brands = await Brand.paginate(filter, options);

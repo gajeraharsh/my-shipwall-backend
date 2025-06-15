@@ -23,6 +23,9 @@ const fetchOrderRewards = async (req) => {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
     const query = req?.query?.search || "";
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "asc" ? "asc" : "desc";
+    const sortOptions = {};
 
     const queryString = query.trim();
     const queryNumber =
@@ -35,13 +38,18 @@ const fetchOrderRewards = async (req) => {
       searchQuery.minAmount = queryNumber;
       searchQuery.maxAmount = queryNumber;
       searchQuery.rewardPoints = queryNumber;
-    } 
+    }
+    sortOptions[sortField] = sortOrder;
+
+    sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
 
     const rewards = await Rewards.paginate(searchQuery, {
       page,
       limit,
+      sortBy: sortByString,
     });
-
 
     if (!rewards) {
       throw new ApiError(httpStatus.NOT_FOUND, "No Rewards found");

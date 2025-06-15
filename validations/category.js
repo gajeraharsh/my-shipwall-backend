@@ -9,7 +9,7 @@ const createCategoryValidation = Joi.object({
     "string.base": "Category name must be a string.",
     "any.required": "Category name is required.",
   }),
-  categoryUrl: Joi.string().required().uri().messages({
+  categoryUrl: Joi.string().optional().uri().messages({
     "string.base": "Category URL must be a string.",
     "string.uri": "Category URL must be a valid URL.",
     "any.required": "Category URL is required.",

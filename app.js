@@ -1,4 +1,4 @@
-const express = require("express");
+const express = require("express"); 
 const cors = require("cors");
 const path = require("path");
 const dotenv = require("dotenv");
@@ -6,14 +6,14 @@ const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const brandRoutes = require("./routes/brandRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
-const seriesRoutes = require("./routes/seriesRoutes");
+const seriesRoutes = require("./routes/seriesRoutes"); 
 const productRoutes = require("./routes/productRoutes");
 const fileUploadsRoutes = require("./routes/fileUploads3Routes");
 const bannerRoutes = require("./routes/bannerRouttes");
 const colorMasterRoutes = require("./routes/colorMasterRoutes");
 const hsnCodeRoutes = require("./routes/hsnCodeRoutes");
 const generalSettingRoutes = require("./routes/generalSettingRoutes");
-const supportRoutes = require("./routes/supportRoutes"); 
+const supportRoutes = require("./routes/supportRoutes");
 const contactusRoute = require("./routes/contactusRoute");
 const rejectionOrderRoutes = require("./routes/rejectionOrderRoutes");
 const orderRoute = require("./routes/orderRoute");
@@ -44,22 +44,28 @@ dotenv.config(); // Load environment variables from .env file
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.SALE_FRONTEND_URL,
+  process.env.ADMIN_FRONTEND_URL,
+].filter(Boolean); // removes undefined/null values
+
 // Updated CORS configuration
 app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "*",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-    ],
-  })
+  cors()
 );
 
-app.use(express.json());
+app.use(
+  express.json({
+    limit: "100mb",
+  })
+);
+app.use(
+  express.urlencoded({
+    limit: "100mb",
+    extended: true,
+  })
+);
 app.use(cookieParser());
 app.use("/exports", express.static(path.join(__dirname, "public", "exports")));
 
@@ -126,5 +132,5 @@ const errorHandler = (
 
 // @ts-ignore
 app.use(errorHandler);
-
 module.exports = app;
+

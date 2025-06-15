@@ -11,7 +11,7 @@ const calculateTotals = async (cart) => {
     const pricePerItem = Math.round(item.price * quantity);
 
     const productPrice = parseFloat(pricePerItem);
-    const totalProductValue = productPrice * item.quantity;
+    const totalProductValue = productPrice;
 
     item.subtotal = Math.round(totalProductValue * 100) / 100;
 

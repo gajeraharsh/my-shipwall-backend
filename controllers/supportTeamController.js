@@ -57,9 +57,12 @@ const createSupportTeam = asyncHandler(async (req, res) => {
 
 const getSupportUsers = asyncHandler(async (req, res) => {
   const { search, page, limit } = req.query;
+  const sortField = req?.query?.sortField || "createdAt";
+  const sortOrder = req?.query?.sortOrder === "desc" ? "desc" : "asc";
 
   let where = {
     role: "admin_support",
+    isDeleted: false,
   };
 
   if (search) {
@@ -70,6 +73,13 @@ const getSupportUsers = asyncHandler(async (req, res) => {
       { phone: { $regex: search, $options: "i" } },
     ];
   }
+  const sortOptions = {};
+  sortOptions[sortField] = sortOrder;
+
+  // Convert sortOptions object to string for aggregation paginate
+  const sortByString = Object.entries(sortOptions)
+    .map(([key, val]) => `${key}:${val}`)
+    .join(",");
 
   // Filter by date range
 
@@ -77,6 +87,7 @@ const getSupportUsers = asyncHandler(async (req, res) => {
   const users = await User.paginate(where, {
     page,
     limit,
+    sortBy: sortByString,
   });
 
   return res
@@ -165,8 +176,11 @@ const deleteSupportUserById = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Id is required");
     }
 
-    const user = await User.findByIdAndDelete(id);
+    const user = await User.findById(id);
     if (!user) throw new ApiError(404, "User not found");
+
+    await user.softDelete();
+
     return res
       .status(200)
       .json(new ApiResponse(200, user, "User deleted successfully"));

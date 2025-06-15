@@ -19,7 +19,7 @@ const productSchema = new Schema(
       default: "Active",
     },
     price: {
-      type: String,
+      type: Number,
       required: true,
     },
     stock: {
@@ -32,11 +32,25 @@ const productSchema = new Schema(
     thumbImage: {
       type: String,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+productSchema.methods.softDelete = async function () {
+  this.isDeleted = true;
+  this.deletedAt = new Date();
+  await this.save();
+};
 
 productSchema.plugin(paginate);
 

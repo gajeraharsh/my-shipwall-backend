@@ -32,14 +32,24 @@ const fetchRewardsProdcts = async (req) => {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
     const query = req?.query?.search || "";
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "asc" ? "asc" : "desc";
+    const sortOptions = {};
+    sortOptions[sortField] = sortOrder;
+
+    sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
 
     const rewardsProducts = await RewardProducts.paginate(
       {
         name: { $regex: query, $options: "i" },
+        isDeleted: false,
       },
       {
         page,
         limit,
+        sortBy: sortByString,
       }
     );
 
@@ -101,7 +111,7 @@ const updateRewardProductById = async (id, req) => {
       throw new ApiError(httpStatus.NOT_FOUND, "Reward products not found");
     return rewardProduct;
   } catch (err) {
-    console.log(err,'err')
+    console.log(err, "err");
 
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
@@ -112,9 +122,10 @@ const updateRewardProductById = async (id, req) => {
 
 const deleteRewardProductById = async (id) => {
   try {
-    const rewardProduct = await RewardProducts.findByIdAndDelete(id);
+    const rewardProduct = await RewardProducts.findById(id);
     if (!rewardProduct)
       throw new ApiError(httpStatus.NOT_FOUND, "Reward products not found");
+    await rewardProduct.softDelete();
     return rewardProduct;
   } catch (err) {
     throw new ApiError(

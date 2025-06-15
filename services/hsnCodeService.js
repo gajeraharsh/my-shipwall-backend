@@ -19,14 +19,26 @@ const fetchhsnCodes = async (req) => {
     const page = req?.query?.page;
     const limit = req?.query?.limit;
     const query = req?.query?.search;
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "asc" ? "asc" : "desc";
+    const sortOptions = {};
+
+    sortOptions[sortField] = sortOrder;
+
+    sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
 
     const hsncodes = await HsnModel.paginate(
       {
         code: { $regex: query, $options: "i" },
+        isDeleted: false,
       },
       {
         page,
         limit,
+        sortBy: sortByString,
+        pagination: false
       }
     );
 
@@ -46,8 +58,10 @@ const fetchhsnCodes = async (req) => {
 const fetchHsnCodeDropdown = async (req) => {
   try {
     const filter = req.query.search
-      ? { code: { $regex: req.query.search, $options: "i" } }
-      : {};
+      ? { isDeleted: false, code: { $regex: req.query.search, $options: "i" } }
+      : {
+          isDeleted: false,
+        };
 
     const options = {
       page: Number(req.query.page) || 1,
@@ -102,9 +116,12 @@ const updateHsnCodeById = async (id, updateData) => {
 
 const deleteHsnCodeById = async (id) => {
   try {
-    const hsnCode = await HsnModel.findByIdAndDelete(id);
+    const hsnCode = await HsnModel.findById(id);
     if (!hsnCode)
       throw new ApiError(httpStatus.NOT_FOUND, "Hsn code not found");
+
+    await hsnCode.softDelete();
+
     return hsnCode;
   } catch (err) {
     throw new ApiError(

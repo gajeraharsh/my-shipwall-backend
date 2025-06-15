@@ -12,6 +12,7 @@ const { uploadFileToS3 } = require("../services/fileUploads3Service");
 const mongoose = require("mongoose");
 const CustomerWalletCredit = require("../models/CustomerWalletCredit");
 const CustomerRewardCredit = require("../models/CustomerRewardCredit");
+const GeneralSettingModel = require("../models/generalSetting");
 
 const createUser = asyncHandler(async (req, res) => {
   const { error, value } = userValidationSchema.validate(req?.body, {
@@ -108,10 +109,25 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const query = [];
 
-  if (userName) query.push({ userName, role });
-  if (phone) query.push({ phone, role });
-  if (phone) query.push({ email: phone, role });
-  if (logginId) query.push({ logginId, role });
+  if (role == "sale_admin") {
+    query.push({
+      $or: [
+        {
+          email: userName,
+          role: role,
+        },
+        {
+          userName: userName,
+          role: role,
+        },
+      ],
+    });
+  } else {
+    if (userName) query.push({ userName, role });
+    if (phone) query.push({ phone, role });
+    if (phone) query.push({ email: phone, role });
+    if (logginId) query.push({ logginId, role });
+  }
 
   const user = await User.findOne({
     $or: query,
@@ -142,6 +158,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
   if (!isPasswordValid) {
     throw new ApiError(500, "Invalid user credentials");
+  }
+
+  if (user?.role == "sale_member" && user?.saleUserStatus == "Blocked") {
+    throw new ApiError(
+      403,
+      "Your account has been blocked by the system. Please contact support for more information."
+    );
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
@@ -351,7 +374,11 @@ const getUsers = asyncHandler(async (req, res) => {
     salePerson,
   } = req.query;
 
+  const sortField = req?.query?.sortField || "createdAt";
+  const sortOrder = req?.query?.sortOrder === "desc" ? "desc" : "asc";
+
   const andConditions = [{ role: "user" }];
+  const sortOptions = {};
 
   // Search across multiple fields
   if (search) {
@@ -360,6 +387,7 @@ const getUsers = asyncHandler(async (req, res) => {
       { fullName: { $regex: search, $options: "i" } },
       { email: { $regex: search, $options: "i" } },
       { phone: { $regex: search, $options: "i" } },
+      { id: { $regex: search, $options: "i" } },
     ];
     andConditions.push({ $or: searchOrConditions });
   }
@@ -383,33 +411,48 @@ const getUsers = asyncHandler(async (req, res) => {
 
   if (salePerson) {
     andConditions.push({
-      salePerson: salePerson,
+      salePerson: new mongoose.Types.ObjectId(salePerson),
     });
   }
 
   // State filter
   if (state) {
-    andConditions.push({ "currentAddress.state": state });
+    andConditions.push({
+      "currentAddress.state": new mongoose.Types.ObjectId(state),
+    });
   }
 
   // City filter
   if (city) {
-    andConditions.push({ "currentAddress.city": city });
+    andConditions.push({
+      "currentAddress.city": new mongoose.Types.ObjectId(city),
+    });
   }
 
   // Final query object
   const where =
     andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
+  sortOptions[sortField] = sortOrder;
+  const sortByString = Object.entries(sortOptions)
+    .map(([key, val]) => `${key}:${val}`)
+    .join(",");
 
   // @ts-ignore
-  const users = await User.paginate(where, {
-    page,
-    limit,
-    populate: [
-      { path: "billingAddress.state", select: "_id name" },
-      { path: "billingAddress.city", select: "_id name" },
-    ],
-  });
+  const users = await User.paginate(
+    {
+      ...where,
+      isDeleted: false,
+    },
+    {
+      page,
+      limit,
+      sortBy: sortByString,
+      populate: [
+        { path: "billingAddress.state", select: "_id name" },
+        { path: "billingAddress.city", select: "_id name" },
+      ],
+    }
+  );
 
   return res
     .status(200)
@@ -437,6 +480,7 @@ const getUsersV2 = asyncHandler(async (req, res) => {
 
   const matchStage = {
     role: "user",
+    isDeleted: false,
   };
 
   // Search filter
@@ -531,6 +575,9 @@ const getUsersV2 = asyncHandler(async (req, res) => {
 });
 
 const getUser = asyncHandler(async (req, res) => {
+  const generalSettings = await GeneralSettingModel.findOne();
+  const returnDays = generalSettings?.returnDays || 3;
+
   const user = await User.findById(req.user._id)
     .populate({
       path: "billingAddress.city",
@@ -560,9 +607,20 @@ const getUser = asyncHandler(async (req, res) => {
   if (!user) {
     return res.status(404).json(new ApiResponse(404, {}, "User not found"));
   }
-  return res
-    .status(200)
-    .json(new ApiResponse(200, { user: user }, "User retrivied successfully"));
+  const plainUser = user.toObject();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: {
+          ...plainUser,
+          returnDays,
+        },
+      },
+      "User retrivied successfully"
+    )
+  );
 });
 
 const getAdminUserInfo = asyncHandler(async (req, res) => {
@@ -601,6 +659,29 @@ const updateUser = asyncHandler(async (req, res) => {
     deliveryAddress,
     sameAsBilling,
   } = req.body;
+
+  const conditions = [];
+
+  if (email && email !== existingUser.email) {
+    conditions.push({ email, role: "user" });
+  }
+
+  if (phone && phone !== existingUser.phone) {
+    conditions.push({ phone, role: "user" });
+  }
+
+  if (conditions.length > 0) {
+    const existing = await User.findOne({ $or: conditions });
+
+    if (existing) {
+      if (existing.email === email) {
+        throw new ApiError(400, "Email already in use");
+      }
+      if (existing.phone === phone) {
+        throw new ApiError(400, "Phone already in use");
+      }
+    }
+  }
 
   const files = req.files;
 
@@ -777,8 +858,11 @@ const deleteUserById = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Id is required");
     }
 
-    const user = await User.findByIdAndDelete(id);
+    const user = await User.findById(id);
     if (!user) throw new ApiError(404, "User not found");
+
+    await user.softDelete();
+
     return res
       .status(200)
       .json(new ApiResponse(200, user, "User deleted successfully"));
@@ -845,7 +929,7 @@ const updateVerification = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  const { status, docStatus, sap_customer_code } = req.body;
+  const { status, docStatus } = req.body;
 
   const updatedUser = await User.findByIdAndUpdate(
     userId,
@@ -853,7 +937,6 @@ const updateVerification = asyncHandler(async (req, res) => {
       $set: {
         status,
         docStatus,
-        sap_customer_code,
       },
     },
     { new: true, runValidators: true }

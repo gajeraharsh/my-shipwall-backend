@@ -36,9 +36,9 @@ const userValidationSchema = Joi.object({
     "string.base": "Phone number must be a string.",
     "any.required": "Phone number is required.",
   }),
-  altContactNumber: Joi.string().when("role", {
+  altContactNumber: Joi.string().allow('').when("role", {
     is: Joi.valid("sale_member"),
-    then: Joi.required().messages({
+    then: Joi.required().allow('').messages({
       "string.base": "Alternative number must be a string.",
       "any.required": "Alternative is required for sale_member role.",
     }),
@@ -69,9 +69,9 @@ const userValidationSchema = Joi.object({
     otherwise: Joi.optional(),
   }),
 
-  note: Joi.string().when("role", {
+  note: Joi.string().allow('').when("role", {
     is: Joi.valid("sale_member"),
-    then: Joi.required().messages({
+    then: Joi.required().allow('').messages({
       "string.base": "note number must be a string.",
       "any.required": "note is required for sale_member role.",
     }),
@@ -184,9 +184,9 @@ const saleUserCreateValidation = Joi.object({
     "string.base": "Phone number must be a string.",
     "any.required": "Phone number is required.",
   }),
-  altContactNumber: Joi.string().when("role", {
+  altContactNumber: Joi.string().allow("").when("role", {
     is: Joi.valid("sale_member"),
-    then: Joi.required().messages({
+    then: Joi.required().allow("").messages({
       "string.base": "Alternative number must be a string.",
       "any.required": "Alternative is required for sale_member role.",
     }),

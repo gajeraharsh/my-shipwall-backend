@@ -77,7 +77,8 @@ const calculateTotals = async (cart) => {
       ? generalSettings.generalshippingcost
       : 0;
 
-  const totalAmount = subtotal + totalTaxAmount + shippingFee;
+  // const totalAmount = subtotal + totalTaxAmount + shippingFee;
+  const totalAmount = subtotal + shippingFee;
   const subTotalIncTax = subtotal + totalTaxAmount;
 
   return {

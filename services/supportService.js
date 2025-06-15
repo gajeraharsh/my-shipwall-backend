@@ -34,7 +34,9 @@ const fetchTickets = async (req) => {
     const page = req?.query?.page || 1;
     const limit = req?.query?.limit || 10;
     const query = req?.query?.search ?? "";
-
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "desc" ? "desc" : "asc";
+  
     const {
       status = "",
       typeOfComplaint = "",
@@ -73,11 +75,20 @@ const fetchTickets = async (req) => {
       if (endDate) filter.createdAt.$lte = new Date(endDate);
     }
 
+    const sortOptions = {};
+    sortOptions[sortField] = sortOrder;
+  
+  // Convert sortOptions object to string for aggregation paginate
+  const sortByString = Object.entries(sortOptions)
+    .map(([key, val]) => `${key}:${val}`)
+    .join(",");
+
     const tickets = await Support.paginate(filter, {
       page,
       limit,
       sortBy: "createdAt:desc",
       populate: [{ path: "user", select: "_id id" }],
+      sortBy: sortByString
     });
 
     return tickets;

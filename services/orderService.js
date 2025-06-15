@@ -18,8 +18,9 @@ const { calculateTotalRewardByProduct } = require("../utils/helperFunction");
 const User = require("../models/User");
 const CustomerRewardCredit = require("../models/CustomerRewardCredit");
 const RewardModel = require("../models/Rewards");
+const CustomerWalletCredit = require("../models/CustomerWalletCredit");
 
-const createOrderService = async (userId) => {
+const createOrderService = async (userId, balance) => {
   const cart = await Cart.findOne({ user: userId }).populate(
     "products.product"
   );
@@ -41,6 +42,12 @@ const createOrderService = async (userId) => {
     }
   }
 
+  const rawDeduction = Math.min(cart?.totalAmount || 0, balance || 0);
+  const deductedBalanceAmount = Math.round(rawDeduction * 100) / 100;
+
+  const cartDeductDifff = cart?.totalAmount - deductedBalanceAmount;
+  const isPayableAsWallet = cartDeductDifff < 0 || cartDeductDifff == 0;
+
   const newOrder = new Order({
     user: userId,
     orderId: newOrderNumber,
@@ -55,6 +62,7 @@ const createOrderService = async (userId) => {
       taxPercent: item?.taxPercent,
       hsnTx: item?.hsnTx,
     })),
+    deductedBalanceAmount: deductedBalanceAmount,
     finalTotal: cart.totalAmount,
     subtotal: cart.subtotal,
     shippingFee: cart.shippingFee,
@@ -69,17 +77,17 @@ const createOrderService = async (userId) => {
       phone: "User Phone",
     },
     orderStatus: "initiated",
-    paymentStatus: "Awaiting Payment",
+    paymentStatus: isPayableAsWallet ? "Paid" : "Awaiting Payment",
   });
 
   await newOrder.save();
 
-  for (const item of cart.products) {
-    const productCurrentStock = parseInt(item?.product?.stock);
-    await Product.findByIdAndUpdate(item.product._id, {
-      stock: productCurrentStock - item.quantity,
-    });
-  }
+  // for (const item of cart.products) {
+  //   const productCurrentStock = parseInt(item?.product?.stock);
+  //   await Product.findByIdAndUpdate(item.product._id, {
+  //     stock: productCurrentStock - item.quantity,
+  //   });
+  // }
 
   cart.products = [];
   cart.totalAmount = 0;
@@ -88,6 +96,21 @@ const createOrderService = async (userId) => {
   cart.subTotalIncTax = 0;
   cart.taxAmount = 0;
   await cart.save();
+
+  const user = await User.findById(userId);
+
+  if (!user) throw new Error("User not found");
+
+  const currentBalance = user.balance || 0;
+  const newBalance = Number(
+    (currentBalance - deductedBalanceAmount).toFixed(2)
+  );
+
+  await User.findByIdAndUpdate(userId, {
+    $set: {
+      balance: newBalance,
+    },
+  });
 
   return newOrder;
 };
@@ -105,7 +128,7 @@ const fetchOrders = async (req) => {
       paymentStatus,
     } = req.query;
 
-    let query = { user: req?.user?._id };
+    let query = { "user._id": req?.user?._id };
 
     if (search) {
       query.$or = [
@@ -137,7 +160,7 @@ const fetchOrders = async (req) => {
     if (paymentStatus) {
       query.paymentStatus = paymentStatus;
     }
-
+    console.log(query);
     // Fetch orders with returnOrder virtual
     const orders = await Order.paginate(query, {
       page,
@@ -145,7 +168,7 @@ const fetchOrders = async (req) => {
       populate: [
         {
           path: "user",
-          select: "fullName id phone email",
+          select: "fullName id phone email _id",
         },
         {
           path: "returnOrder",
@@ -177,6 +200,9 @@ const fetchAllOrders = async (req) => {
       orderStatus,
       paymentStatus,
     } = req.query;
+    const sortField = req?.query?.sortField || "createdAt";
+    const sortOrder = req?.query?.sortOrder === "asc" ? "asc" : "desc";
+    const sortOptions = {};
 
     let query = {};
 
@@ -211,6 +237,19 @@ const fetchAllOrders = async (req) => {
       query.paymentStatus = paymentStatus;
     }
 
+    if (sortField == "firstName") {
+      sortOptions["user.firstName"] = sortOrder;
+    } else if (sortField == "email") {
+      sortOptions["user.email"] = sortOrder;
+    } else {
+      sortOptions[sortField] = sortOrder;
+    }
+
+    // Convert sortOptions object to string for aggregation paginate
+    const sortByString = Object.entries(sortOptions)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
+
     // Fetch orders with returnOrder virtual
     const orders = await Order.paginate(query, {
       page,
@@ -225,7 +264,7 @@ const fetchAllOrders = async (req) => {
           select: "_id returnStatus refundStatus createdAt",
         },
       ],
-      sortBy: "createdAt:desc",
+      sortBy: sortByString,
     });
 
     return orders;
@@ -415,6 +454,7 @@ const fetchOrdersBySalePerson = async (req) => {
         id: 1,
         orderId: 1,
         products: 1,
+        deductedBalanceAmount: 1,
         finalTotal: 1,
         subtotal: 1,
         subTotalIncTax: 1,
@@ -583,7 +623,7 @@ const updateOrderStatusService = async (orderId, newStatus, changedBy) => {
     },
     {
       path: "products.product",
-      select: "_id id rewardPoints",
+      select: "_id id rewardPoints stock",
     },
   ]);
   if (!order) {
@@ -611,6 +651,40 @@ const updateOrderStatusService = async (orderId, newStatus, changedBy) => {
 
   order.orderStatus = newStatus;
 
+  if (newStatus == "delevered") {
+    order.deliveredAt = new Date();
+  }
+
+  if (newStatus === "Cancelled") {
+    if (order?.paymentMode) {
+      for (const item of order.products) {
+        const productCurrentStock = parseInt(item?.product?.stock);
+        await Product.findByIdAndUpdate(item.product._id, {
+          stock: productCurrentStock + item.quantity,
+        });
+      }
+
+      const user = await User.findByIdAndUpdate(
+        order.user?._id,
+        {
+          $inc: {
+            balance: Number(order?.finalTotal),
+          },
+        },
+        { new: true }
+      );
+
+      await CustomerWalletCredit.create({
+        amount: order?.finalTotal,
+        type: "credit",
+        description: `Cancel order ${order?.id}`,
+        referenceId: order._id,
+        referenceModel: "Order",
+        user: user?._id,
+      });
+    }
+  }
+
   // Usage
   if (newStatus === "delevered") {
     const salePerson = order?.user?.salePerson;
@@ -637,48 +711,48 @@ const updateOrderStatusService = async (orderId, newStatus, changedBy) => {
         });
       }
     }
-
-    // For user rewards
-    if (newStatus == "delevered") {
-      const generalSettings = await GeneralSettingModel.findOne();
-      const methodOfReward = generalSettings?.methodOfReward;
-      if (methodOfReward) {
-        let rewardCount = 0;
-        if (methodOfReward == "product") {
-          rewardCount = await calculateTotalRewardByProduct(order);
-        }
-
-        if (methodOfReward == "orderValue") {
-          const reward = await RewardModel.findOne({
-            minAmount: { $lte: order.finalTotal },
-            maxAmount: { $gte: order.finalTotal },
-          }).sort({ minAmount: 1 });
-
-          rewardCount = reward.rewardPoints;
-        }
-
-        if (rewardCount > 0) {
-          await CustomerRewardCredit.create({
-            amount: rewardCount,
-            user: order.user,
-            type: "credit",
-            description: `Rwards for Order ${order?.id}`,
-            referenceId: order._id,
-          });
-
-          const user = await User.findByIdAndUpdate(
-            order.user,
-            {
-              $inc: {
-                rewards: Number(rewardCount),
-              },
-            },
-            { new: true }
-          );
-        }
-      }
-    }
   }
+
+  // For user rewards
+  // if (newStatus == "delevered") {
+  //   const generalSettings = await GeneralSettingModel.findOne();
+  //   const methodOfReward = generalSettings?.methodOfReward;
+  //   if (methodOfReward) {
+  //     let rewardCount = 0;
+  //     if (methodOfReward == "product") {
+  //       rewardCount = await calculateTotalRewardByProduct(order);
+  //     }
+
+  //     if (methodOfReward == "orderValue") {
+  //       const reward = await RewardModel.findOne({
+  //         minAmount: { $lte: order.finalTotal },
+  //         maxAmount: { $gte: order.finalTotal },
+  //       }).sort({ minAmount: 1 });
+
+  //       rewardCount = reward?.rewardPoints || 0;
+  //     }
+
+  //     if (rewardCount > 0) {
+  //       await CustomerRewardCredit.create({
+  //         amount: rewardCount,
+  //         user: order.user,
+  //         type: "credit",
+  //         description: `Rwards for Order ${order?.id}`,
+  //         referenceId: order._id,
+  //       });
+
+  //       const user = await User.findByIdAndUpdate(
+  //         order.user,
+  //         {
+  //           $inc: {
+  //             rewards: Number(rewardCount),
+  //           },
+  //         },
+  //         { new: true }
+  //       );
+  //     }
+  //   }
+  // }
 
   await order.save();
 
@@ -728,16 +802,27 @@ const changePaymentStatus = async (orderId, data, changedBy) => {
   const { paymentRemark, paymentMode } = data;
 
   if (!paymentRemark || !paymentMode) {
-    throw new ApiError(httpStatus[400], "Invalid input.");
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Invalid input.");
   }
 
-  const order = await Order.findById(orderId);
+  const order = await Order.findById(orderId).populate("products.product");
+
   if (!order) {
     throw new ApiError(httpStatus.NOT_FOUND, "Rejection Order not found");
   }
 
+  if (!order.paymentMode) {
+    for (const item of order.products) {
+      const productCurrentStock = parseInt(item?.product?.stock);
+      await Product.findByIdAndUpdate(item.product._id, {
+        stock: productCurrentStock - item.quantity,
+      });
+    }
+  }
+
   order.paymentRemark = paymentRemark;
   order.paymentMode = paymentMode;
+  order.paymentStatus = "Paid";
 
   await order.save();
 
@@ -855,6 +940,7 @@ const fetchOrderExcelFileExport = async (req) => {
         id: 1,
         orderId: 1,
         products: 1,
+        deductedBalanceAmount: 1,
         finalTotal: 1,
         subtotal: 1,
         subTotalIncTax: 1,
@@ -968,6 +1054,7 @@ const fetchOrderExcelFileExport = async (req) => {
       subTotalIncludingTax: order?.subTotalIncTax,
       tax: order?.taxAmount,
       Shipping: order?.shippingFee,
+      deductedBalanceAmount: order?.deductedBalanceAmount || 0,
       orderAmount: order?.finalTotal,
       ReceiptNo: order?.recipientId,
       OrderStatus: order?.orderStatus,
